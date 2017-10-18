@@ -1,0 +1,17 @@
+cmake_minimum_required(VERSION 2.8.9)
+
+project(test_project)
+
+add_subdirectory(src)
+
+if(LINUX)
+  set(CMAKE_CXX_FLAGS_DEBUG "-g -Wall")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -Wno-deprecated-declarations -Wno-reorder")
+  if(CLANG)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libc++")
+  endif()
+endif()
+
+file(GLOB SOURCES "src/*.cpp")
+
+add_executable(test main.cpp ${SOURCES})
