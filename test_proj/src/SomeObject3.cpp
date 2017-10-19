@@ -6,8 +6,7 @@ using std::vector;
 using std::map;
 using std::max;
 
-size_t POOL_SIZE = 100;
-
+size_t SomeObject3::POOL_SIZE = 100;
 map<void*, size_t> SomeObject3::pools;
 vector<void*> SomeObject3::free;
 size_t SomeObject3::overhead = 0;
@@ -24,7 +23,7 @@ void* parentOf2(void* ptr) {
     for (const auto& pair : SomeObject3::pools) {
         auto somePtr = (SomeObject3*)pair.first;
         if (ptr >= somePtr &&
-            ptr < somePtr + (POOL_SIZE)) {
+            ptr < somePtr + (SomeObject3::POOL_SIZE)) {
             return pair.first;
         }
     }

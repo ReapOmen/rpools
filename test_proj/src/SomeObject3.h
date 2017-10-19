@@ -10,7 +10,7 @@ using std::malloc;
 class SomeObject3 {
 public:
 
-    static size_t overhead;
+    static size_t overhead, POOL_SIZE;
 
     static std::map<void*, size_t> pools;
 

@@ -1,14 +1,26 @@
 #include <vector>
 #include <ctime>
 #include <fstream>
+#include <string>
+#include <iostream>
 
 #include "src/SomeObject.h"
 #include "src/SomeObject2.h"
 #include "src/SomeObject3.h"
 
-#define BOUND 100000
+int main(int argc, char *argv[]) {
 
-int main() {
+    size_t BOUND;
+
+    if (argc < 2) {
+        return 1;
+    } else {
+        BOUND = std::stoul(argv[1]);
+        if (argc > 2) {
+            SomeObject3::POOL_SIZE = std::stoul(argv[2]);
+        }
+    }
+
     std::clock_t start;
     std::ofstream f("time_taken.txt");
     f << "Allocating " << BOUND << " objects." << std::endl;
@@ -37,7 +49,7 @@ int main() {
     for (int i = 0; i < BOUND; ++i) {
         objs3.push_back(new SomeObject3());
     }
-    f << "Allocate SomeObject3: "
+    f << "Allocate SomeObject3(" << SomeObject3::POOL_SIZE <<  "): "
       << (std::clock() - start) / (double)(CLOCKS_PER_SEC / 1000)
       << " ms" << std::endl;
 
@@ -65,7 +77,7 @@ int main() {
         delete objs3.back();
         objs3.pop_back();
     }
-    f << "Deallocate SomeObject3: "
+    f << "Deallocate SomeObject3("<< SomeObject3::POOL_SIZE <<"): "
       << (std::clock() - start) / (double)(CLOCKS_PER_SEC / 1000)
       << " ms" << std::endl;
 
