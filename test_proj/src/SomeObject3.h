@@ -1,11 +1,13 @@
-#ifndef __SOME_OBJECT2_H__
-#define __SOME_OBJECT2_H__
+#ifndef __SOME_OBJECT3_H__
+#define __SOME_OBJECT3_H__
 
 #include <cstdlib>
+using std::malloc;
+#include <fstream>
 #include <vector>
 #include <map>
 
-class SomeObject2 {
+class SomeObject3 {
 public:
 
     static size_t overhead;
@@ -14,9 +16,9 @@ public:
 
     static std::vector<void*> free;
 
-    SomeObject2() = default;
+    SomeObject3() = default;
 
-    ~SomeObject2() = default;
+    ~SomeObject3() = default;
 
     static void* operator new(size_t size);
 
@@ -29,4 +31,4 @@ private:
     int _z;
 };
 
-#endif // __SOME_OBJECT_H__
+#endif // __SOME_OBJECT3_H__

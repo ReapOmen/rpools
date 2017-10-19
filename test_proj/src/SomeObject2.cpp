@@ -4,10 +4,19 @@ using std::make_pair;
 using std::pair;
 using std::vector;
 using std::map;
-using ::allocFile;
+using std::max;
 
 map<void*, size_t> SomeObject2::pools;
 vector<void*> SomeObject2::free;
+size_t SomeObject2::overhead = 0;
+
+size_t calculateOverheadSize() {
+    size_t freeSize = 16 + sizeof(SomeObject2::free) +
+        sizeof(void*) * SomeObject2::free.capacity();
+    size_t poolsSize = 16 + sizeof(SomeObject2::pools) +
+        (16 + sizeof(pair<void*, size_t>)) * SomeObject2::pools.size();
+    return freeSize + poolsSize;
+}
 
 void* parentOf(void* ptr) {
     auto itr = SomeObject2::pools.find(ptr);
@@ -22,11 +31,13 @@ void* SomeObject2::operator new(size_t size) {
         pools.insert(make_pair(alloc, 1));
         void* ptr = (void*)((SomeObject2*)alloc + 1);
         free.push_back(ptr);
+        overhead = max(overhead, calculateOverheadSize());
         return alloc;
     } else {
         auto freeMem = free.back();
         free.pop_back();
         --pools[parentOf(freeMem)];
+        overhead = max(overhead, calculateOverheadSize());
         return ::new(freeMem) SomeObject2();
     }
 }
@@ -41,4 +52,5 @@ void SomeObject2::operator delete(void *ptr) {
     } else {
         free.push_back(ptr);
     }
+    overhead = max(overhead, calculateOverheadSize());
 }

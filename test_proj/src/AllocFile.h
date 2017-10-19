@@ -17,7 +17,7 @@ public:
 
 private:
     std::map<size_t, size_t> allocs, deallocs;
-    std::ofstream allocFile, deallocFile;
+    std::ofstream allocFile, deallocFile, overheadFile;
 };
 
 extern AllocFile allocFile;

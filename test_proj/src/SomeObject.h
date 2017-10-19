@@ -6,6 +6,10 @@
 class SomeObject {
 public:
 
+    static size_t count;
+
+    static size_t overhead;
+
     SomeObject() = default;
 
     ~SomeObject() = default;
