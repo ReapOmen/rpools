@@ -6,6 +6,11 @@ using std::vector;
 using std::map;
 using std::max;
 
+#include <iostream>
+#include <algorithm>
+using std::cout;
+using std::endl;
+
 size_t SomeObject3::POOL_SIZE = 100;
 map<void*, size_t> SomeObject3::pools;
 vector<void*> SomeObject3::free;
@@ -22,18 +27,19 @@ size_t calculateOverheadSize2() {
 void* parentOf2(void* ptr) {
     for (const auto& pair : SomeObject3::pools) {
         auto somePtr = (SomeObject3*)pair.first;
-        if (ptr >= somePtr &&
+        if (ptr >= pair.first &&
             ptr < somePtr + (SomeObject3::POOL_SIZE)) {
             return pair.first;
         }
     }
+    return nullptr;
 }
 
 void* SomeObject3::operator new(size_t size) {
     if (free.empty()) {
         void* alloc = std::malloc(size * POOL_SIZE);
         allocFile.processAllocation(size * POOL_SIZE);
-        pools.insert(make_pair(alloc, 1));
+        pools.insert(make_pair(alloc, POOL_SIZE - 1));
         void* ptr = NULL;
         for (int i = 1; i < POOL_SIZE; ++i) {
             ptr = (void*)((SomeObject3*)alloc + i);
@@ -56,6 +62,7 @@ void SomeObject3::operator delete(void *ptr) {
     size_t newSize = ++pools[parent];
     if (newSize == POOL_SIZE) {
         ::allocFile.processDeallocation(sizeof(SomeObject3) * POOL_SIZE);
+        // XXX delete from free
         std::free(parent);
     } else {
         free.push_back(ptr);
