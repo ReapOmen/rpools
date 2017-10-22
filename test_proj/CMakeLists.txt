@@ -17,3 +17,4 @@ endif()
 file(GLOB SOURCES "src/*.cpp")
 
 add_executable(test main.cpp ${SOURCES})
+add_executable(benchmark_obj2 benchmark_Obj2.cpp ${SOURCES})
