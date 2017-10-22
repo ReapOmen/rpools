@@ -3,6 +3,7 @@
 #include "SomeObject2.h"
 #include "SomeObject3.h"
 #include "Obj1.h"
+#include "Obj2.h"
 
 #include <iostream>
 using std::cout;
@@ -30,6 +31,7 @@ AllocFile::~AllocFile() {
     overheadFile << "SomeObject2 maximum overhead: " <<SomeObject2::overhead << endl;
     overheadFile << "SomeObject3 maximum overhead: " <<SomeObject3::overhead << endl;
     overheadFile << "Obj1 maximum overhead: " <<Obj1::overhead << endl;
+    overheadFile << "Obj2 maximum overhead: " <<Obj2::overhead << endl;
 }
 
 void AllocFile::processAllocation(size_t size) {
