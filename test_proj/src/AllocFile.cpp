@@ -31,7 +31,9 @@ AllocFile::~AllocFile() {
     overheadFile << "SomeObject2 maximum overhead: " <<SomeObject2::overhead << endl;
     overheadFile << "SomeObject3 maximum overhead: " <<SomeObject3::overhead << endl;
     overheadFile << "Obj1 maximum overhead: " <<Obj1::overhead << endl;
+#ifdef WRITE_ALLOCS_TO_FILE
     overheadFile << "Obj2 maximum overhead: " <<Obj2::overhead << endl;
+#endif
 }
 
 void AllocFile::processAllocation(size_t size) {

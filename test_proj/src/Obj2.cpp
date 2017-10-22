@@ -1,6 +1,4 @@
 #include "Obj2.h"
-#include "AllocFile.h"
-
 #include <algorithm>
 using std::make_pair;
 using std::pair;
@@ -12,13 +10,16 @@ constexpr size_t SIZE_OF_VOID = sizeof(void*);
 
 size_t Obj2::POOL_SIZE = 80;
 size_t Obj2::METADATA_SIZE = (Obj2::POOL_SIZE >> 3) + SIZE_OF_UNSGN;
-size_t Obj2::overhead = 0;
 vector<void*> Obj2::pools;
+
+#ifdef WRITE_ALLOCS_TO_FILE
+size_t Obj2::overhead = 0;
 
 size_t Obj2::calculateOverhead() {
     return 16 + METADATA_SIZE +
         sizeof(vector<void*>) + pools.size() * SIZE_OF_VOID;
 }
+#endif
 
 pair<void*, size_t> Obj2::getPool(void* ptr) {
     for (const auto& pool : pools) {
@@ -64,13 +65,15 @@ void* Obj2::operator new(size_t size) {
         }
     }
     void* pool = std::malloc(METADATA_SIZE + size * POOL_SIZE);
-    ::allocFile.processAllocation(METADATA_SIZE + size * POOL_SIZE);
     for (size_t b = 0; b < METADATA_SIZE; ++b) {
         char* metadata = (char*) pool + b;
         *metadata = 0;
     }
     pools.push_back(pool);
+#ifdef WRITE_ALLOCS_TO_FILE
+    ::allocFile.processAllocation(METADATA_SIZE + size * POOL_SIZE);
     overhead = std::max(calculateOverhead(), overhead);
+#endif
     return nextFree(pool);
 }
 
@@ -83,9 +86,13 @@ void Obj2::operator delete(void* ptr) {
     --*(size_t*)pair.first;
     if (getFreeCount(pair.first) == POOL_SIZE) {
         std::free(pair.first);
+#ifdef WRITE_ALLOCS_TO_FILE
         ::allocFile.processDeallocation(METADATA_SIZE +
                                         sizeof(Obj2) * POOL_SIZE);
+#endif
         pools.erase(std::find(pools.begin(), pools.end(), pair.first));
     }
+#ifdef WRITE_ALLOCS_TO_FILE
     overhead = std::max(calculateOverhead(), overhead);
+#endif
 }

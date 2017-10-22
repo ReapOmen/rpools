@@ -3,14 +3,21 @@
 
 #include <cstdlib>
 #include <vector>
+#define WRITE_ALLOCS_TO_FILE 1
+
+#ifdef WRITE_ALLOCS_TO_FILE
+#include "AllocFile.h"
+#endif
 
 class Obj2 {
 public:
 
-    static size_t overhead, POOL_SIZE, METADATA_SIZE;
+    static size_t POOL_SIZE, METADATA_SIZE;
+#ifdef WRITE_ALLOCS_TO_FILE
+    static size_t overhead;
 
     static size_t calculateOverhead();
-
+#endif
     static std::pair<void*, size_t> getPool(void* ptr);
 
     static std::vector<void*> pools;
