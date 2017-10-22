@@ -4,7 +4,9 @@ import subprocess
 import matplotlib.pyplot as plt
 
 
-NUM_OF_IMPLEMENTATIONS = 4
+NUM_OF_IMPLEMENTATIONS = 5
+labels = ["SomeObject", "SomeObject2", "SomeObject3(100)",
+          "Obj1(80)", "Obj2(80)"]
 
 
 def get_overheads():
@@ -48,8 +50,8 @@ def plot():
 
 def plot_overheads(x, y):
     plt.subplot(221)
-    plt.title('Memory overheads of the 3 implementations')
-    labels = ["SomeObject", "SomeObject2", "SomeObject3(100)", "Obj1(80)"]
+    plt.title('Memory overheads of the %d implementations'%
+              (NUM_OF_IMPLEMENTATIONS))
     plots = []
     for i in range(0, len(labels)):
         plots.append(plt.plot(x, y[i], label=labels[i]))
@@ -60,8 +62,8 @@ def plot_overheads(x, y):
 
 def plot_alloc_time(x, y):
     plt.subplot(222)
-    plt.title('Allocation time of the 3 implementations')
-    labels = ["SomeObject", "SomeObject2", "SomeObject3(100)", "Obj1(80)"]
+    plt.title('Allocation time of the %d implementations' %
+              (NUM_OF_IMPLEMENTATIONS))
     plots = []
     for i in range(0, len(labels)):
         plots.append(plt.plot(x, y[i], label=labels[i]))
@@ -72,8 +74,8 @@ def plot_alloc_time(x, y):
 
 def plot_dealloc_time(x, y):
     plt.subplot(224)
-    plt.title('Deallocation time of the 3 implementations')
-    labels = ["SomeObject", "SomeObject2", "SomeObject3(100)", "Obj1(80)"]
+    plt.title('Deallocation time of the %d implementations' %
+              (NUM_OF_IMPLEMENTATIONS))
     plots = []
     for i in range(0, len(labels)):
         plots.append(plt.plot(x, y[i], label=labels[i]))
