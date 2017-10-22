@@ -4,6 +4,9 @@ import subprocess
 import matplotlib.pyplot as plt
 
 
+NUM_OF_IMPLEMENTATIONS = 4
+
+
 def get_overheads():
     lst = []
     with open('./overheads.txt') as f:
@@ -26,23 +29,18 @@ def call_test(allocs, pool_size=100):
 
 
 def plot():
-    overheads_to_plot = [[], [], []]
-    alloc_time_plot = [[], [], []]
-    dealloc_time_plot = [[], [], []]
+    overheads_to_plot = [[] for i in range(NUM_OF_IMPLEMENTATIONS)]
+    alloc_time_plot = [[] for i in range(NUM_OF_IMPLEMENTATIONS)]
+    dealloc_time_plot = [[] for i in range(NUM_OF_IMPLEMENTATIONS)]
     alloc_range = range(1, 10000, 100)
     for i in alloc_range:
         call_test(i)
         overheads = get_overheads()
-        overheads_to_plot[0].append(overheads[0])
-        overheads_to_plot[1].append(overheads[1])
-        overheads_to_plot[2].append(overheads[2])
         alloc_time = get_alloc_time()
-        alloc_time_plot[0].append(alloc_time[0])
-        alloc_time_plot[1].append(alloc_time[1])
-        alloc_time_plot[2].append(alloc_time[2])
-        dealloc_time_plot[0].append(alloc_time[3])
-        dealloc_time_plot[1].append(alloc_time[4])
-        dealloc_time_plot[2].append(alloc_time[5])
+        for j in range(NUM_OF_IMPLEMENTATIONS):
+            overheads_to_plot[j].append(overheads[j])
+            alloc_time_plot[j].append(alloc_time[j])
+            dealloc_time_plot[j].append(alloc_time[j + NUM_OF_IMPLEMENTATIONS])
     plot_overheads(alloc_range, overheads_to_plot)
     plot_alloc_time(alloc_range, alloc_time_plot)
     plot_dealloc_time(alloc_range, dealloc_time_plot)
@@ -51,7 +49,7 @@ def plot():
 def plot_overheads(x, y):
     plt.subplot(221)
     plt.title('Memory overheads of the 3 implementations')
-    labels = ["SomeObject", "SomeObject2", "SomeObject3(100)"]
+    labels = ["SomeObject", "SomeObject2", "SomeObject3(100)", "Obj1(80)"]
     plots = []
     for i in range(0, len(labels)):
         plots.append(plt.plot(x, y[i], label=labels[i]))
@@ -63,7 +61,7 @@ def plot_overheads(x, y):
 def plot_alloc_time(x, y):
     plt.subplot(222)
     plt.title('Allocation time of the 3 implementations')
-    labels = ["SomeObject", "SomeObject2", "SomeObject3(100)"]
+    labels = ["SomeObject", "SomeObject2", "SomeObject3(100)", "Obj1(80)"]
     plots = []
     for i in range(0, len(labels)):
         plots.append(plt.plot(x, y[i], label=labels[i]))
@@ -75,7 +73,7 @@ def plot_alloc_time(x, y):
 def plot_dealloc_time(x, y):
     plt.subplot(224)
     plt.title('Deallocation time of the 3 implementations')
-    labels = ["SomeObject", "SomeObject2", "SomeObject3(100)"]
+    labels = ["SomeObject", "SomeObject2", "SomeObject3(100)", "Obj1(80)"]
     plots = []
     for i in range(0, len(labels)):
         plots.append(plt.plot(x, y[i], label=labels[i]))
