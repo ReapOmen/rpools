@@ -4,6 +4,7 @@
 #include "SomeObject3.h"
 #include "Obj1.h"
 #include "Obj2.h"
+#include "Obj3.h"
 
 #include <iostream>
 using std::cout;
@@ -33,6 +34,7 @@ AllocFile::~AllocFile() {
     overheadFile << "Obj1 maximum overhead: " <<Obj1::overhead << endl;
 #ifdef WRITE_ALLOCS_TO_FILE
     overheadFile << "Obj2 maximum overhead: " <<Obj2::overhead << endl;
+    overheadFile << "Obj3 maximum overhead: " <<Obj3::overhead << endl;
 #endif
 }
 

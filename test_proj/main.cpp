@@ -9,6 +9,7 @@
 #include "src/SomeObject3.h"
 #include "src/Obj1.h"
 #include "src/Obj2.h"
+#include "src/Obj3.h"
 
 using std::cout;
 using std::endl;
@@ -76,6 +77,15 @@ int main(int argc, char *argv[]) {
       << (std::clock() - start) / (double)(CLOCKS_PER_SEC / 1000)
       << " ms" << std::endl;
 
+    start = std::clock();
+    std::vector<Obj3*> obj3;
+    for (int i = 0; i < BOUND; ++i) {
+        obj3.push_back(new Obj3());
+    }
+    f << "Allocate Obj3: "
+      << (std::clock() - start) / (double)(CLOCKS_PER_SEC / 1000)
+      << " ms" << std::endl;
+
     // now let's deallocate all of them
     start = std::clock();
     for (int i = 0; i < BOUND; ++i) {
@@ -119,6 +129,15 @@ int main(int argc, char *argv[]) {
         obj2.pop_back();
     }
     f << "Deallocate Obj2("<< Obj2::POOL_SIZE <<"): "
+      << (std::clock() - start) / (double)(CLOCKS_PER_SEC / 1000)
+      << " ms" << std::endl;
+
+    start = std::clock();
+    for (int i = 0; i < BOUND; ++i) {
+        delete obj3.back();
+        obj3.pop_back();
+    }
+    f << "Deallocate Obj3("<< Obj3::POOL_SIZE <<"): "
       << (std::clock() - start) / (double)(CLOCKS_PER_SEC / 1000)
       << " ms" << std::endl;
 

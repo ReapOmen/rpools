@@ -4,9 +4,9 @@ import subprocess
 import matplotlib.pyplot as plt
 
 
-NUM_OF_IMPLEMENTATIONS = 5
+NUM_OF_IMPLEMENTATIONS = 6
 labels = ["SomeObject", "SomeObject2", "SomeObject3(100)",
-          "Obj1(80)", "Obj2(80)"]
+          "Obj1(80)", "Obj2(80)", "Obj3(80)"]
 
 
 def get_overheads():
