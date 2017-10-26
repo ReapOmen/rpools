@@ -14,7 +14,6 @@ if(LINUX)
   endif()
 endif()
 
-file(GLOB SOURCES "src/*.cpp")
-
-add_executable(test main.cpp ${SOURCES})
-add_executable(benchmark_obj2 benchmark_Obj2.cpp ${SOURCES})
+add_executable(test_bit bitpool_main.cpp)
+add_executable(test_linked linkedpool_main.cpp)
+add_executable(test_all main.cpp)
