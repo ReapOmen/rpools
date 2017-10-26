@@ -27,7 +27,6 @@ void* Obj3::getPool(void* ptr) {
         if (ptr > pool &&
                 ptr < poolByte + METADATA_SIZE  + sizeof(Obj3) * POOL_SIZE) {
             return pool;
-
         }
     }
     return nullptr;

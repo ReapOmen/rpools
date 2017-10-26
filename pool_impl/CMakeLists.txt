@@ -14,4 +14,5 @@ if(LINUX)
   endif()
 endif()
 
-add_executable(test2 bitpool_main.cpp)
+add_executable(test_bit bitpool_main.cpp)
+add_executable(test_linked linkedpool_main.cpp)
