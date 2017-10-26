@@ -16,3 +16,4 @@ endif()
 
 add_executable(test_bit bitpool_main.cpp)
 add_executable(test_linked linkedpool_main.cpp)
+add_executable(test_all main.cpp)
