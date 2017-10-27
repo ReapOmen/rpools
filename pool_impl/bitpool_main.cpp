@@ -12,7 +12,7 @@ struct Test {
 };
 
 int main(int agrc, char* argv[]) {
-    size_t BOUND = 1000000;
+    size_t BOUND = 10000;
     BitPool<Test> pool = BitPool<Test>(80);
     vector<Test*> objs(BOUND);
     for (int i = 0; i < BOUND; ++i) {

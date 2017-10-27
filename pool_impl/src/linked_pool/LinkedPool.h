@@ -47,6 +47,7 @@ public:
 
 private:
     const size_t _poolSize, _metadataSize;
+    Pool _freePool;
     std::vector<Pool> _pools;
 
     /**
@@ -68,7 +69,10 @@ using std::vector;
 
 template<typename T>
 LinkedPool<T>::LinkedPool(size_t poolSize)
-    : _poolSize(poolSize), _metadataSize(sizeof(void*) + sizeof(size_t)) {
+    : _poolSize(poolSize),
+      _metadataSize(sizeof(void*) + sizeof(size_t)),
+      _freePool(nullptr),
+      _pools(0) {
 
 }
 
@@ -81,35 +85,31 @@ LinkedPool<T>::~LinkedPool() {
 
 template<typename T>
 T* LinkedPool<T>::allocate() {
-    // find a pool that has a free slot
-    for (const auto& pool : _pools) {
-        Pool free = nextFree(pool);
-        if (free != nullptr) {
-            // call the constructor and return a pointer
-            // to the newly created object
-            auto toRet = (T*) free;
-            *toRet = T();
-            return toRet;
+    if (_freePool) {
+        auto toRet = (T*) nextFree(_freePool);
+        *toRet = T();
+        return toRet;
+    } else {
+        // every pool is full, so we allocate a new pool
+        Pool pool = std::malloc(_metadataSize + sizeof(T) * _poolSize);
+        *(size_t*)pool = 0;
+        Node* head = (Node*)((char*)pool + sizeof(size_t));
+        *head = Node();
+        head->next = head + 1;
+        T* first = reinterpret_cast<T*>(head->next);
+        for (int i = 0; i < _poolSize - 1; ++i) {
+            Node* node = reinterpret_cast<Node*>(first);
+            *node = Node();
+            node->next = reinterpret_cast<Node*>(++first);
         }
-    }
-    // every pool is full, so we allocate a new pool
-    Pool pool = std::malloc(_metadataSize + sizeof(T) * _poolSize);
-    *(size_t*)pool = 0;
-    Node* head = (Node*)((char*)pool + sizeof(size_t));
-    *head = Node();
-    head->next = head + 1;
-    T* first = reinterpret_cast<T*>(head->next);
-    for (int i = 0; i < _poolSize - 1; ++i) {
         Node* node = reinterpret_cast<Node*>(first);
         *node = Node();
-        node->next = reinterpret_cast<Node*>(++first);
+        _pools.push_back(pool);
+        _freePool = pool;
+        auto toRet = (T*) nextFree(pool);
+        *toRet = T();
+        return toRet;
     }
-    Node* node = reinterpret_cast<Node*>(first);
-    *node = Node();
-    _pools.push_back(pool);
-    auto toRet = (T*) nextFree(pool);
-    *toRet = T();
-    return toRet;
 }
 
 template<typename T>
@@ -134,6 +134,10 @@ void LinkedPool<T>::deallocate(T* ptr) {
     if (getFreeCount(pool) == _poolSize) {
         std::free(pool);
         _pools.erase(std::find(_pools.begin(), _pools.end(), pool));
+    } else {
+        if (!_freePool) {
+            _freePool = pool;
+        }
     }
 }
 
@@ -155,7 +159,10 @@ void* LinkedPool<T>::nextFree(Pool ptr) {
     if (head->next != nullptr) {
         void* toReturn = head->next;
         head->next = head->next->next;
-        ++*(size_t*)(ptr);
+        size_t newSize = ++*(size_t*)(ptr);
+        if (newSize == _poolSize) {
+            _freePool = nullptr;
+        }
         return toReturn;
     }
     return head->next;
