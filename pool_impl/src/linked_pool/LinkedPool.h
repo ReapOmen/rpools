@@ -1,15 +1,11 @@
 #ifndef __LINKED_POOL_H__
 #define __LINKED_POOL_H__
 
-#include <vector>
 #include <cstdlib>
-#include <algorithm>
+#include <sys/mman.h>
 
 using Pool = void*;
 
-/**
-   Used by getPool.
- */
 struct Node {
     Node* next;
 };
@@ -23,14 +19,12 @@ class LinkedPool {
 public:
 
     /**
-       Creates a LinkedPool allocator that will create pools of the given size.
-       By default, poolSize is 80.
-       @param poolSize - the size of the pools that will be
-                         allocated (80 by default)
+       Creates a LinkedPool allocator that will allocate objects of type T
+       in pools and return pointers to them.
      */
-    LinkedPool(size_t poolSize = 80);
+    LinkedPool();
 
-    ~LinkedPool();
+    ~LinkedPool() = default;
 
     /**
        Allocates an object in one of the free slots and returns a pointer
@@ -46,41 +40,33 @@ public:
     void deallocate(T* ptr);
 
 private:
-    const size_t _poolSize, _metadataSize;
-    Pool _freePool;
-    std::vector<Pool> _pools;
+    // the extra data that we keep for each pool
+    static constexpr size_t METADATA_SIZE = sizeof(void*) + sizeof(size_t);
+    // because we allocate memory in chunks of 4096 bytes,
+    // we are only interested in the first 52 high order bits
+    static constexpr size_t POOL_MASK = 18446744073709547520U; // -1 >> 12 << 12
+    // XXX use constant define in some linux header instead of
+    // hardcoding the value
+    static constexpr size_t PAGE_SIZE = 4096;
 
-    /**
-       Given a pointer to an object,
-       returns the Pool in which it is contained.
-     */
-    Pool getPool(void* ptr);
+    const size_t _poolSize;
+    Pool _freePool;
+
     /**
        Returns a pointer to the next free slot of memory from the given Pool.
      */
     void* nextFree(Pool ptr);
+
     /**
        Returns the number of free slots of the given Pool.
      */
     size_t getFreeCount(Pool ptr);
 };
 
-using std::vector;
-
 template<typename T>
-LinkedPool<T>::LinkedPool(size_t poolSize)
-    : _poolSize(poolSize),
-      _metadataSize(sizeof(void*) + sizeof(size_t)),
-      _freePool(nullptr),
-      _pools(0) {
-
-}
-
-template<typename T>
-LinkedPool<T>::~LinkedPool() {
-    for (const auto& pool : _pools) {
-        std::free(pool);
-    }
+LinkedPool<T>::LinkedPool()
+    : _poolSize((PAGE_SIZE - METADATA_SIZE) / sizeof(T)),
+      _freePool(nullptr) {
 }
 
 template<typename T>
@@ -90,8 +76,10 @@ T* LinkedPool<T>::allocate() {
         *toRet = T();
         return toRet;
     } else {
-        // every pool is full, so we allocate a new pool
-        Pool pool = std::malloc(_metadataSize + sizeof(T) * _poolSize);
+        // create a new pool because there are no free pool slots left
+        Pool pool = mmap(NULL, PAGE_SIZE,
+            PROT_READ|PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+        // init all the metadata
         *(size_t*)pool = 0;
         Node* head = (Node*)((char*)pool + sizeof(size_t));
         *head = Node();
@@ -104,8 +92,8 @@ T* LinkedPool<T>::allocate() {
         }
         Node* node = reinterpret_cast<Node*>(first);
         *node = Node();
-        _pools.push_back(pool);
         _freePool = pool;
+        // create a T object at the free slot and return a pointer to the new T
         auto toRet = (T*) nextFree(pool);
         *toRet = T();
         return toRet;
@@ -114,10 +102,14 @@ T* LinkedPool<T>::allocate() {
 
 template<typename T>
 void LinkedPool<T>::deallocate(T* ptr) {
+    // destroy T and create a Node instead
     ptr->~T();
     Node* newNode = reinterpret_cast<Node*>(ptr);
-    Pool pool = getPool(ptr);
     *newNode = Node();
+    // get the pool of ptr
+    size_t value = (size_t) ptr;
+    Pool pool = (Pool) (value & POOL_MASK);
+    // update nodes to point to the newly create Node
     Node* head = reinterpret_cast<Node*>((char*)pool + sizeof(size_t));
     if (head->next == nullptr) {
         head->next = newNode;
@@ -132,8 +124,7 @@ void LinkedPool<T>::deallocate(T* ptr) {
     --*(size_t*)pool;
     // pool is empty, let's free it!
     if (getFreeCount(pool) == _poolSize) {
-        std::free(pool);
-        _pools.erase(std::find(_pools.begin(), _pools.end(), pool));
+        munmap(pool, PAGE_SIZE);
     } else {
         if (!_freePool) {
             _freePool = pool;
@@ -142,24 +133,12 @@ void LinkedPool<T>::deallocate(T* ptr) {
 }
 
 template<typename T>
-Pool LinkedPool<T>::getPool(void* ptr) {
-    for (const auto& pool : _pools) {
-        char* poolByte = (char*) pool;
-        if (ptr > pool &&
-                ptr < poolByte + _metadataSize  + sizeof(T) * _poolSize) {
-            return pool;
-        }
-    }
-    return nullptr;
-}
-
-template<typename T>
-void* LinkedPool<T>::nextFree(Pool ptr) {
-    Node* head = ((Node*)((char*)ptr + sizeof(size_t)));
-    if (head->next != nullptr) {
+void* LinkedPool<T>::nextFree(Pool pool) {
+    Node* head = ((Node*)((char*)pool + sizeof(size_t)));
+    if (head->next) {
         void* toReturn = head->next;
         head->next = head->next->next;
-        size_t newSize = ++*(size_t*)(ptr);
+        size_t newSize = ++*(size_t*)(pool);
         if (newSize == _poolSize) {
             _freePool = nullptr;
         }

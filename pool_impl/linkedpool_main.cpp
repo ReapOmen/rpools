@@ -9,11 +9,14 @@ using std::endl;
 struct Test {
     Test() = default;
     int x, y, z;
+    void print() {
+        cout << x << " " << y << " " << z << " " << endl;
+    }
 };
 
 int main(int agrc, char* argv[]) {
-    size_t BOUND = 1000;
-    LinkedPool<Test> pool = LinkedPool<Test>(80);
+    size_t BOUND = 1000000;
+    LinkedPool<Test> pool = LinkedPool<Test>();
     vector<Test*> objs(BOUND);
     for (int i = 0; i < BOUND; ++i) {
         objs.push_back(pool.allocate());

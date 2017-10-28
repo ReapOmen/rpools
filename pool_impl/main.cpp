@@ -53,7 +53,7 @@ int main(int argc, char *argv[]) {
       << (std::clock() - start) / (double)(CLOCKS_PER_SEC / 1000)
       << " ms" << std::endl;
 
-    LinkedPool<Test> lp(POOL_SIZE);
+    LinkedPool<Test> lp;
     start = std::clock();
     // let's create a lot of objects!
     std::vector<Test*> objs3(BOUND);
