@@ -4,6 +4,7 @@
 #include <cstdlib>
 #include <unistd.h>
 #include <sys/mman.h>
+#include <unordered_set>
 
 using Pool = void*;
 
@@ -46,34 +47,34 @@ private:
     // because we allocate memory in chunks of 4096 bytes,
     // we are only interested in the first 52 high order bits
     static constexpr size_t POOL_MASK = 18446744073709547520U; // -1 >> 12 << 12
-    // XXX use constant define in some linux header instead of
+    // XXX use constant defined in some linux header instead of
     // hardcoding the value
     static constexpr size_t PAGE_SIZE = 4096;
 
     const size_t _poolSize;
     Pool _freePool;
+    std::unordered_set<Pool> _freePools;
 
     /**
        Returns a pointer to the next free slot of memory from the given Pool.
      */
     void* nextFree(Pool ptr);
-
-    /**
-       Returns the number of free slots of the given Pool.
-     */
-    size_t getFreeCount(Pool ptr);
 };
 
 template<typename T>
 LinkedPool<T>::LinkedPool()
     : _poolSize((PAGE_SIZE - METADATA_SIZE) / sizeof(T)),
-      _freePool(nullptr) {
+      _freePool(nullptr),
+      _freePools() {
 }
 
 template<typename T>
 T* LinkedPool<T>::allocate() {
     if (_freePool) {
         return new(nextFree(_freePool)) T();
+    } else if (_freePools.size() > 0) {
+        _freePool = *_freePools.begin();
+         return new(nextFree(_freePool)) T();
     } else {
         // create a new pool because there are no free pool slots left
         Pool pool = mmap(NULL, PAGE_SIZE,
@@ -91,6 +92,7 @@ T* LinkedPool<T>::allocate() {
         }
         Node* node = reinterpret_cast<Node*>(first);
         *node = Node();
+        _freePools.insert(pool);
         _freePool = pool;
         return new(nextFree(pool)) T();
     }
@@ -103,8 +105,7 @@ void LinkedPool<T>::deallocate(T* ptr) {
     Node* newNode = reinterpret_cast<Node*>(ptr);
     *newNode = Node();
     // get the pool of ptr
-    size_t value = (size_t) ptr;
-    Pool pool = (Pool) (value & POOL_MASK);
+    Pool pool = (Pool) ((size_t) ptr & POOL_MASK);
     // update nodes to point to the newly create Node
     Node* head = reinterpret_cast<Node*>((char*)pool + sizeof(size_t));
     if (head->next == nullptr) {
@@ -117,13 +118,15 @@ void LinkedPool<T>::deallocate(T* ptr) {
         newNode->next = head->next;
         head->next = newNode;
     }
-    --*(size_t*)pool;
     // pool is empty, let's free it!
-    if (getFreeCount(pool) == _poolSize) {
+    size_t newSize = --*(size_t*)pool;
+    if (newSize == 0) {
+        _freePools.erase(pool);
         munmap(pool, PAGE_SIZE);
     } else {
-        if (!_freePool) {
-            _freePool = pool;
+        _freePool = pool;
+        if (newSize == _poolSize - 1) {
+            _freePools.insert(_freePool);
         }
     }
 }
@@ -134,18 +137,13 @@ void* LinkedPool<T>::nextFree(Pool pool) {
     if (head->next) {
         void* toReturn = head->next;
         head->next = head->next->next;
-        size_t newSize = ++*(size_t*)(pool);
-        if (newSize == _poolSize) {
-            _freePool = nullptr;
+        if (++*(size_t*)(pool) == _poolSize) {
+            _freePools.erase(pool);
+            _freePool = _freePools.size() == 0 ? nullptr : *_freePools.begin();
         }
         return toReturn;
     }
     return head->next;
-}
-
-template<typename T>
-size_t LinkedPool<T>::getFreeCount(Pool ptr) {
-    return _poolSize - *(size_t*)ptr;
 }
 
 #endif // __LINKED_POOL_H__
