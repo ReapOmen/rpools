@@ -30,7 +30,7 @@ int main(int agrc, char* argv[]) {
     vector<Test*> objs;
     objs.reserve(BOUND);
     for (int i = 0; i < BOUND; ++i) {
-        objs.push_back(pool.allocate());
+        objs.push_back((Test*) pool.allocate());
     }
     for (int i = 0; i < BOUND; ++i) {
         pool.deallocate(objs.back());

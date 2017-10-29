@@ -42,14 +42,14 @@ public:
        to it. The object's default constructor will be called.
        @return A pointer to the newly created object of type T.
      */
-    T* allocate();
+    void* allocate();
 
     /**
        Deallocates the given pointer that was allocated using the allocate
        method.
        @param ptr - a pointer to an object that will be deallocated
      */
-    void deallocate(T* ptr);
+    void deallocate(void* ptr);
 
 private:
     // because we allocate memory in chunks of 4096 bytes,
@@ -95,12 +95,12 @@ LinkedPool<T>::~LinkedPool() {
 }
 
 template<typename T>
-T* LinkedPool<T>::allocate() {
+void* LinkedPool<T>::allocate() {
     if (_freePool) {
-        return new(nextFree(_freePool)) T();
+        return nextFree(_freePool);
     } else if (_freePools.size() > 0) {
         _freePool = *_freePools.begin();
-         return new(nextFree(_freePool)) T();
+         return nextFree(_freePool);
     } else {
         // create a new pool because there are no free pool slots left
         Pool pool = aligned_alloc(PAGE_SIZE, PAGE_SIZE);
@@ -119,14 +119,12 @@ T* LinkedPool<T>::allocate() {
         *node = Node();
         _freePools.insert(pool);
         _freePool = pool;
-        return new(nextFree(pool)) T();
+        return nextFree(pool);
     }
 }
 
 template<typename T>
-void LinkedPool<T>::deallocate(T* ptr) {
-    // destroy T and create a Node instead
-    ptr->~T();
+void LinkedPool<T>::deallocate(void* ptr) {
     Node* newNode = reinterpret_cast<Node*>(ptr);
     *newNode = Node();
     // get the pool of ptr

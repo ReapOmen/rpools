@@ -42,7 +42,7 @@ int main(int argc, char *argv[]) {
     std::vector<Test*> objs3;
     objs3.reserve(BOUND);
     for (int i = 0; i < BOUND; ++i) {
-        objs3.push_back(lp.allocate());
+        objs3.push_back((Test*) lp.allocate());
     }
     f << "Allocate Test with LinkedPool: "
       << (std::clock() - start) / (double)(CLOCKS_PER_SEC / 1000)
