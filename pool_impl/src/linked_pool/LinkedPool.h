@@ -3,7 +3,6 @@
 
 #include <cstdlib>
 #include <unistd.h>
-#include <sys/mman.h>
 #include <unordered_set>
 
 using Pool = void*;
@@ -91,7 +90,7 @@ LinkedPool<T>::~LinkedPool() {
                 --size;
             }
         }
-        munmap(pool, PAGE_SIZE);
+        free(pool);
     }
 }
 
@@ -104,8 +103,7 @@ T* LinkedPool<T>::allocate() {
          return new(nextFree(_freePool)) T();
     } else {
         // create a new pool because there are no free pool slots left
-        Pool pool = mmap(NULL, PAGE_SIZE,
-            PROT_READ|PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+        Pool pool = aligned_alloc(PAGE_SIZE, PAGE_SIZE);
         // init all the metadata
         PoolHeader* header = (PoolHeader*) pool;
         *header = PoolHeader((char*) pool);
@@ -149,7 +147,7 @@ void LinkedPool<T>::deallocate(T* ptr) {
     size_t newSize = --pool->sizeOfPool;
     if (newSize == 0) {
         _freePools.erase(pool);
-        munmap(pool, PAGE_SIZE);
+        free(pool);
         _freePool = _freePools.size() == 0 ? nullptr : *_freePools.begin();
     } else {
         _freePool = pool;
