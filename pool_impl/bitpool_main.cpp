@@ -9,6 +9,9 @@ using std::endl;
 struct Test {
     Test() = default;
     int x, y, z;
+    virtual void v() {
+
+    }
 };
 
 int main(int agrc, char* argv[]) {
@@ -17,6 +20,7 @@ int main(int agrc, char* argv[]) {
     vector<Test*> objs(BOUND);
     for (int i = 0; i < BOUND; ++i) {
         objs.push_back(pool.allocate());
+        objs.back()->v();
     }
     for (int i = 0; i < BOUND; ++i) {
         pool.deallocate(objs.back());

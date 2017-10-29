@@ -2,6 +2,7 @@
 #define __LINKED_POOL_H__
 
 #include <cstdlib>
+#include <unistd.h>
 #include <sys/mman.h>
 
 using Pool = void*;
@@ -72,9 +73,7 @@ LinkedPool<T>::LinkedPool()
 template<typename T>
 T* LinkedPool<T>::allocate() {
     if (_freePool) {
-        auto toRet = (T*) nextFree(_freePool);
-        *toRet = T();
-        return toRet;
+        return new(nextFree(_freePool)) T();
     } else {
         // create a new pool because there are no free pool slots left
         Pool pool = mmap(NULL, PAGE_SIZE,
@@ -93,10 +92,7 @@ T* LinkedPool<T>::allocate() {
         Node* node = reinterpret_cast<Node*>(first);
         *node = Node();
         _freePool = pool;
-        // create a T object at the free slot and return a pointer to the new T
-        auto toRet = (T*) nextFree(pool);
-        *toRet = T();
-        return toRet;
+        return new(nextFree(pool)) T();
     }
 }
 

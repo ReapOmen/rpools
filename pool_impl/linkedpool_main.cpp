@@ -9,8 +9,17 @@ using std::endl;
 struct Test {
     Test() = default;
     int x, y, z;
-    void print() {
-        cout << x << " " << y << " " << z << " " << endl;
+
+    void setX(int x2) {
+        x = x2;
+    }
+
+    int getX() {
+        return x;
+    }
+
+    virtual void print() {
+        cout << "Hello Test" << endl;
     }
 };
 
