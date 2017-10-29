@@ -8,6 +8,7 @@ using std::endl;
 
 struct Test {
     Test() = default;
+    ~Test() = default;
     int x, y, z;
 
     void setX(int x2) {
@@ -24,7 +25,7 @@ struct Test {
 };
 
 int main(int agrc, char* argv[]) {
-    size_t BOUND = 1000000;
+    size_t BOUND = 100;
     LinkedPool<Test> pool = LinkedPool<Test>();
     vector<Test*> objs(BOUND);
     for (int i = 0; i < BOUND; ++i) {

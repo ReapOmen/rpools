@@ -26,11 +26,12 @@ public:
      */
     LinkedPool();
 
-    ~LinkedPool() = default;
+    ~LinkedPool();
 
     /**
        Allocates an object in one of the free slots and returns a pointer
-       to it. The object's constructor will be called.
+       to it. The object's default constructor will be called.
+       @return A pointer to the newly created object of type T.
      */
     T* allocate();
 
@@ -66,6 +67,23 @@ LinkedPool<T>::LinkedPool()
     : _poolSize((PAGE_SIZE - METADATA_SIZE) / sizeof(T)),
       _freePool(nullptr),
       _freePools() {
+}
+
+template<typename T>
+LinkedPool<T>::~LinkedPool() {
+    for (const auto& pool : _freePools) {
+        Node* currentNode = (Node*) ((char*) pool + sizeof(size_t));
+        size_t size = *(size_t*) pool;
+        while (size) {
+            T* prev = (T*) (currentNode + 1);
+            currentNode = currentNode->next;
+            for (size_t i = 0; i < (T*) currentNode - prev; ++i) {
+                (prev + i)->~T();
+                --size;
+            }
+        }
+        munmap(pool, PAGE_SIZE);
+    }
 }
 
 template<typename T>
