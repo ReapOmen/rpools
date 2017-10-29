@@ -12,6 +12,16 @@ struct Node {
     Node* next;
 };
 
+struct PoolHeader {
+    size_t sizeOfPool;
+    Node* head;
+
+    PoolHeader(char* start)
+        : sizeOfPool(0),
+          head(new(start + sizeof(size_t)) Node()) {
+    }
+};
+
 /**
    LinkedPool is a pool allocation system which tries to minimise the amount
    of overheads created by allocating lots of objects on the heap.
@@ -43,14 +53,10 @@ public:
     void deallocate(T* ptr);
 
 private:
-    // the extra data that we keep for each pool
-    static constexpr size_t METADATA_SIZE = sizeof(void*) + sizeof(size_t);
     // because we allocate memory in chunks of 4096 bytes,
     // we are only interested in the first 52 high order bits
     static constexpr size_t POOL_MASK = 18446744073709547520U; // -1 >> 12 << 12
-    // XXX use constant defined in some linux header instead of
-    // hardcoding the value
-    static constexpr size_t PAGE_SIZE = 4096;
+    static const size_t PAGE_SIZE;
 
     const size_t _poolSize;
     Pool _freePool;
@@ -63,8 +69,11 @@ private:
 };
 
 template<typename T>
+const size_t LinkedPool<T>::PAGE_SIZE = sysconf(_SC_PAGESIZE);
+
+template<typename T>
 LinkedPool<T>::LinkedPool()
-    : _poolSize((PAGE_SIZE - METADATA_SIZE) / sizeof(T)),
+    : _poolSize((PAGE_SIZE - sizeof(PoolHeader)) / sizeof(T)),
       _freePool(nullptr),
       _freePools() {
 }
@@ -98,9 +107,9 @@ T* LinkedPool<T>::allocate() {
         Pool pool = mmap(NULL, PAGE_SIZE,
             PROT_READ|PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
         // init all the metadata
-        *(size_t*)pool = 0;
-        Node* head = (Node*)((char*)pool + sizeof(size_t));
-        *head = Node();
+        PoolHeader* header = (PoolHeader*) pool;
+        *header = PoolHeader((char*) pool);
+        Node* head = header->head;
         head->next = head + 1;
         T* first = reinterpret_cast<T*>(head->next);
         for (int i = 0; i < _poolSize - 1; ++i) {
@@ -123,9 +132,9 @@ void LinkedPool<T>::deallocate(T* ptr) {
     Node* newNode = reinterpret_cast<Node*>(ptr);
     *newNode = Node();
     // get the pool of ptr
-    Pool pool = (Pool) ((size_t) ptr & POOL_MASK);
+    PoolHeader* pool = (PoolHeader*) ((size_t) ptr & POOL_MASK);
     // update nodes to point to the newly create Node
-    Node* head = reinterpret_cast<Node*>((char*)pool + sizeof(size_t));
+    Node* head = (Node*) &pool->head;
     if (head->next == nullptr) {
         head->next = newNode;
     } else {
@@ -137,10 +146,11 @@ void LinkedPool<T>::deallocate(T* ptr) {
         head->next = newNode;
     }
     // pool is empty, let's free it!
-    size_t newSize = --*(size_t*)pool;
+    size_t newSize = --pool->sizeOfPool;
     if (newSize == 0) {
         _freePools.erase(pool);
         munmap(pool, PAGE_SIZE);
+        _freePool = _freePools.size() == 0 ? nullptr : *_freePools.begin();
     } else {
         _freePool = pool;
         if (newSize == _poolSize - 1) {
@@ -151,11 +161,12 @@ void LinkedPool<T>::deallocate(T* ptr) {
 
 template<typename T>
 void* LinkedPool<T>::nextFree(Pool pool) {
-    Node* head = ((Node*)((char*)pool + sizeof(size_t)));
+    PoolHeader* header = (PoolHeader*) pool;
+    Node* head = (Node*) &header->head;
     if (head->next) {
         void* toReturn = head->next;
         head->next = head->next->next;
-        if (++*(size_t*)(pool) == _poolSize) {
+        if (++header->sizeOfPool == _poolSize) {
             _freePools.erase(pool);
             _freePool = _freePools.size() == 0 ? nullptr : *_freePools.begin();
         }
