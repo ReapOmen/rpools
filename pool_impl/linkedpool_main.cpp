@@ -27,7 +27,8 @@ struct Test {
 int main(int agrc, char* argv[]) {
     size_t BOUND = 100;
     LinkedPool<Test> pool = LinkedPool<Test>();
-    vector<Test*> objs(BOUND);
+    vector<Test*> objs;
+    objs.reserve(BOUND);
     for (int i = 0; i < BOUND; ++i) {
         objs.push_back(pool.allocate());
     }

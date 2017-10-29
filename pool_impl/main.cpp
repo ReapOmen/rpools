@@ -34,7 +34,8 @@ int main(int argc, char *argv[]) {
 
     start = std::clock();
     // let's create a lot of objects!
-    std::vector<Test*> objs(BOUND);
+    std::vector<Test*> objs;
+    objs.reserve(BOUND);
     for (int i = 0; i < BOUND; ++i) {
         objs.push_back(new Test());
     }
@@ -45,7 +46,8 @@ int main(int argc, char *argv[]) {
     BitPool<Test> bp(POOL_SIZE);
     start = std::clock();
     // let's create a lot of objects!
-    std::vector<Test*> objs2(BOUND);
+    std::vector<Test*> objs2;
+    objs2.reserve(BOUND);
     for (int i = 0; i < BOUND; ++i) {
         objs2.push_back(bp.allocate());
     }
@@ -56,7 +58,8 @@ int main(int argc, char *argv[]) {
     LinkedPool<Test> lp;
     start = std::clock();
     // let's create a lot of objects!
-    std::vector<Test*> objs3(BOUND);
+    std::vector<Test*> objs3;
+    objs3.reserve(BOUND);
     for (int i = 0; i < BOUND; ++i) {
         objs3.push_back(lp.allocate());
     }
