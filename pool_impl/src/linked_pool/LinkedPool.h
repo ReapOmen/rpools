@@ -35,8 +35,6 @@ public:
      */
     LinkedPool();
 
-    ~LinkedPool();
-
     /**
        Allocates an object in one of the free slots and returns a pointer
        to it. The object's default constructor will be called.
@@ -75,23 +73,6 @@ LinkedPool<T>::LinkedPool()
     : _poolSize((PAGE_SIZE - sizeof(PoolHeader)) / sizeof(T)),
       _freePool(nullptr),
       _freePools() {
-}
-
-template<typename T>
-LinkedPool<T>::~LinkedPool() {
-    for (const auto& pool : _freePools) {
-        Node* currentNode = (Node*) ((char*) pool + sizeof(size_t));
-        size_t size = *(size_t*) pool;
-        while (size) {
-            T* prev = (T*) (currentNode + 1);
-            currentNode = currentNode->next;
-            for (size_t i = 0; i < (T*) currentNode - prev; ++i) {
-                (prev + i)->~T();
-                --size;
-            }
-        }
-        free(pool);
-    }
 }
 
 template<typename T>
@@ -162,7 +143,7 @@ void* LinkedPool<T>::nextFree(Pool pool) {
     if (head->next) {
         void* toReturn = head->next;
         head->next = head->next->next;
-        if (++header->sizeOfPool == _poolSize) {
+        if (++(header->sizeOfPool) == _poolSize) {
             _freePools.erase(pool);
             _freePool = _freePools.size() == 0 ? nullptr : *_freePools.begin();
         }
