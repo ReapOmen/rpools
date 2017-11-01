@@ -3,6 +3,7 @@ cmake_minimum_required(VERSION 2.8.9)
 project(test_project)
 
 add_subdirectory(src)
+add_subdirectory(test_linked_pool)
 
 set (CMAKE_CXX_STANDARD 11)
 
@@ -17,4 +18,3 @@ endif()
 add_executable(test_bit bitpool_main.cpp)
 add_executable(test_linked linkedpool_main.cpp)
 add_executable(test_all main.cpp)
-add_executable(test_reg_vs_linked reg_vs_linked.cpp)
