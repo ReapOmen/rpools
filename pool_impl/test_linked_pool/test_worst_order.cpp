@@ -1,7 +1,6 @@
 #include <vector>
-#include <ctime>
-#include <fstream>
 
+#include "Utility.h"
 #include "TestObject.h"
 #include "../src/linked_pool/LinkedPool.h"
 
@@ -38,10 +37,7 @@ int main(int argc, char* argv[]) {
         for (int i = 0; i < BOUND; ++i) {
             objs.push_back(new TestObject());
         }
-
-        f << "Allocate TestObject normally: "
-          << (std::clock() - start) / (double)(CLOCKS_PER_SEC / 1000)
-          << " ms" << std::endl;
+        printToFile(f, "TestObject", start, false, false);
 
         start = std::clock();
         for (int i = 0; i < POOL_SIZE; ++i) {
@@ -49,10 +45,7 @@ int main(int argc, char* argv[]) {
                 delete (objs[i + offset * POOL_SIZE]);
             }
         }
-
-        f << "Deallocate TestObject normally: "
-          << (std::clock() - start) / (double)(CLOCKS_PER_SEC / 1000)
-          << " ms" << std::endl;
+        printToFile(f, "TestObject", start, true, false);
     }
     {
         LinkedPool<TestObject> lp;
@@ -62,10 +55,7 @@ int main(int argc, char* argv[]) {
         for (int i = 0; i < BOUND; ++i) {
             objs2.push_back((TestObject*) lp.allocate());
         }
-
-        f << "Allocate TestObject with LinkedPool: "
-          << (std::clock() - start) / (double)(CLOCKS_PER_SEC / 1000)
-          << " ms" << std::endl;
+        printToFile(f, "TestObject", start, false, true);
 
         start = std::clock();
         for (int i = 0; i < POOL_SIZE; ++i) {
@@ -73,9 +63,6 @@ int main(int argc, char* argv[]) {
                 lp.deallocate(objs2[i + offset * POOL_SIZE]);
             }
         }
-
-        f << "Deallocate TestObject with LinkedPool: "
-          << (std::clock() - start) / (double)(CLOCKS_PER_SEC / 1000)
-          << " ms" << std::endl;
+        printToFile(f, "TestObject", start, true, true);
     }
 }
