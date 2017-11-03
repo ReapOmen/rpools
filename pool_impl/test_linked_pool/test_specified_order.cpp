@@ -40,7 +40,7 @@ void deallocateN(size_t num, vector<TestObject*>& vec, LinkedPool<TestObject>& l
    Allocation and deallocation is done with both new/delete and LinkedPool.
    A command line argument can be passed to set the number of TestObjects
    that will be created and destroyed.
-   The results will be written to a file called `time_taken_specified_order.txt' and
+   The results will be written to a file called `specified_time_taken.txt' and
    it will be of the form:
      Allocating <ARG> objects.
      Regular: X ms
@@ -50,7 +50,7 @@ int main(int argc, char *argv[]) {
     size_t BOUND = argc > 1 ? std::stoul(argv[1]) : 10000;
 
     std::clock_t start;
-    std::ofstream f("time_taken_specified_order.txt");
+    std::ofstream f("specified_time_taken.txt");
 
     size_t five = BOUND * 5 / 100;
     size_t ten = BOUND / 10;

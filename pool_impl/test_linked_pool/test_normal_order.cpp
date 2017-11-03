@@ -12,7 +12,7 @@
    Allocation and deallocation is done with both new/delete and LinkedPool.
    A command line argument can be passed to set the number of TestObjects
    that will be created and destroyed.
-   The results will be written to a file called `time_taken.txt' and
+   The results will be written to a file called `normal_time_taken.txt' and
    it will be of the form:
      Allocating <ARG> objects.
      Allocate TestObject normally: X ms
@@ -24,7 +24,7 @@ int main(int argc, char *argv[]) {
     size_t BOUND = argc > 1 ? std::stoul(argv[1]) : 100000;
 
     std::clock_t start;
-    std::ofstream f("time_taken.txt");
+    std::ofstream f("normal_time_taken.txt");
     f << "Allocating " << BOUND << " objects." << std::endl;
     start = std::clock();
     {
