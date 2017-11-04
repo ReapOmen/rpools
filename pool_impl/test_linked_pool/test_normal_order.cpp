@@ -4,7 +4,7 @@
 
 #include "Utility.h"
 #include "TestObject.h"
-#include "../src/linked_pool/LinkedPool.h"
+#include "linked_pool/LinkedPool.h"
 
 /**
    Allocates a number of TestObjects on the heap and deallocates

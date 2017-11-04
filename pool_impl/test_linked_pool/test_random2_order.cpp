@@ -7,7 +7,7 @@
 
 #include "Utility.h"
 #include "TestObject.h"
-#include "../src/linked_pool/LinkedPool.h"
+#include "linked_pool/LinkedPool.h"
 
 using std::pair;
 using std::make_pair;

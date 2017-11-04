@@ -2,10 +2,10 @@ cmake_minimum_required(VERSION 2.8.9)
 
 project(test_project)
 
+set(CMAKE_CXX_STANDARD 11)
+
 add_subdirectory(src)
 add_subdirectory(test_linked_pool)
-
-set (CMAKE_CXX_STANDARD 11)
 
 if(LINUX)
   set(CMAKE_CXX_FLAGS_DEBUG "-g -Wall")
