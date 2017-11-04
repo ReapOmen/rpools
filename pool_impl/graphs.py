@@ -5,7 +5,8 @@ import matplotlib.pyplot as plt
 
 
 NUM_OF_IMPLEMENTATIONS = 3
-labels = ["Regular", "BitPool(8000)", "LinkedPool(8000)"]
+labels = ["Regular", "BitPool(800)", "LinkedPool(800)"]
+
 
 def get_alloc_time():
     lst = []
@@ -16,7 +17,7 @@ def get_alloc_time():
     return lst
 
 
-def call_test(allocs, pool_size=8000):
+def call_test(allocs, pool_size=800):
     subprocess.run(['./build/test_all', str(allocs), str(pool_size)])
 
 

@@ -8,15 +8,29 @@ using std::endl;
 
 struct Test {
     Test() = default;
+    ~Test() = default;
     int x, y, z;
+
+    void setX(int x2) {
+        x = x2;
+    }
+
+    int getX() {
+        return x;
+    }
+
+    virtual void print() {
+        cout << "Hello Test" << endl;
+    }
 };
 
 int main(int agrc, char* argv[]) {
-    size_t BOUND = 1000000;
-    LinkedPool<Test> pool = LinkedPool<Test>(80);
-    vector<Test*> objs(BOUND);
+    size_t BOUND = 100;
+    LinkedPool<Test> pool = LinkedPool<Test>();
+    vector<Test*> objs;
+    objs.reserve(BOUND);
     for (int i = 0; i < BOUND; ++i) {
-        objs.push_back(pool.allocate());
+        objs.push_back((Test*) pool.allocate());
     }
     for (int i = 0; i < BOUND; ++i) {
         pool.deallocate(objs.back());

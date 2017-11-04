@@ -50,6 +50,7 @@ public:
 
 private:
     const size_t _poolSize, _metadataSize;
+    Pool _freePool;
     std::vector<Pool> _pools;
 
     /**
@@ -72,7 +73,10 @@ using std::vector;
 
 template<typename T>
 BitPool<T>::BitPool(size_t poolSize)
-    : _poolSize(poolSize), _metadataSize((_poolSize >> 3) + sizeof(size_t)) {
+    : _poolSize(poolSize),
+      _metadataSize((_poolSize >> 3) + sizeof(size_t)),
+      _freePool(nullptr),
+      _pools(0) {
 
 }
 
@@ -85,28 +89,24 @@ BitPool<T>::~BitPool() {
 
 template<typename T>
 T* BitPool<T>::allocate() {
-    // find a pool that has a free slot
-    for (const auto& pool : _pools) {
-        Pool free = nextFree(pool);
-        if (free != nullptr) {
-            // call the constructor and return a pointer
-            // to the newly created object
-            auto toRet = (T*) free;
-            *toRet = T();
-            return toRet;
+    if (_freePool) {
+        auto toRet = (T*) nextFree(_freePool);
+        *toRet = T();
+        return toRet;
+    } else {
+        // every pool is full, so we allocate a new pool
+        Pool pool = std::malloc(_metadataSize + sizeof(T) * _poolSize);
+        // we initialize the metadata of the pool
+        for (size_t b = 0; b < _metadataSize; ++b) {
+            char* metadata = (char*) pool + b;
+            *metadata = 0;
         }
+        _pools.push_back(pool);
+        _freePool = pool;
+        auto toRet = (T*) nextFree(pool);
+        *toRet = T();
+        return toRet;
     }
-    // every pool is full, so we allocate a new pool
-    Pool pool = std::malloc(_metadataSize + sizeof(T) * _poolSize);
-    // we initialize the metadata of the pool
-    for (size_t b = 0; b < _metadataSize; ++b) {
-        char* metadata = (char*) pool + b;
-        *metadata = 0;
-    }
-    _pools.push_back(pool);
-    auto toRet = (T*) nextFree(pool);
-    *toRet = T();
-    return toRet;
 }
 
 template<typename T>
@@ -126,6 +126,10 @@ void BitPool<T>::deallocate(T* ptr) {
     if (getFreeCount(pair.pool) == _poolSize) {
         std::free(pair.pool);
         _pools.erase(std::find(_pools.begin(), _pools.end(), pair.pool));
+    } else {
+        if (!_freePool) {
+            _freePool = pair.pool;
+        }
     }
 }
 
@@ -156,7 +160,10 @@ void* BitPool<T>::nextFree(Pool ptr) {
                 for (int i = 7; i >= 0; --i) {
                     if (!((*metadata >> i) & 0x01)) {
                         *metadata |= 1 << i;
-                        ++*(size_t*)ptr;
+                        size_t newSize = ++*(size_t*)ptr;
+                        if (newSize == _poolSize) {
+                            _freePool = nullptr;
+                        }
                         void* firstObj = (char*) ptr + _metadataSize;
                         return (T*) firstObj + (7 - i) +
                             ((b - sizeof(size_t)) << 3);
