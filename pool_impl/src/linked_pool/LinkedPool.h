@@ -4,6 +4,9 @@
 #include <cstdlib>
 #include <unistd.h>
 #include <unordered_set>
+#include <cmath>
+
+namespace efficient_pools {
 
 using Pool = void*;
 
@@ -52,8 +55,9 @@ public:
 private:
     // because we allocate memory in chunks of 4096 bytes,
     // we are only interested in the first 52 high order bits
-    static constexpr size_t POOL_MASK = 18446744073709547520U; // -1 >> 12 << 12
     static const size_t PAGE_SIZE;
+    static const size_t POOL_MASK;
+
 
     const size_t _poolSize;
     Pool _freePool;
@@ -67,6 +71,10 @@ private:
 
 template<typename T>
 const size_t LinkedPool<T>::PAGE_SIZE = sysconf(_SC_PAGESIZE);
+
+template<typename T>
+const size_t LinkedPool<T>::POOL_MASK = -1 >> (size_t) std::log2(LinkedPool::PAGE_SIZE)
+                                        << (size_t) std::log2(LinkedPool::PAGE_SIZE);
 
 template<typename T>
 LinkedPool<T>::LinkedPool()
@@ -86,8 +94,8 @@ void* LinkedPool<T>::allocate() {
         // create a new pool because there are no free pool slots left
         Pool pool = aligned_alloc(PAGE_SIZE, PAGE_SIZE);
         // init all the metadata
-        PoolHeader* header = (PoolHeader*) pool;
-        *header = PoolHeader((char*) pool);
+        PoolHeader* header = reinterpret_cast<PoolHeader*> (pool);
+        *header = PoolHeader(reinterpret_cast<char*> (pool));
         Node* head = header->head;
         head->next = head + 1;
         T* first = reinterpret_cast<T*>(head->next);
@@ -109,14 +117,15 @@ void LinkedPool<T>::deallocate(void* ptr) {
     Node* newNode = reinterpret_cast<Node*>(ptr);
     *newNode = Node();
     // get the pool of ptr
-    PoolHeader* pool = (PoolHeader*) ((size_t) ptr & POOL_MASK);
+    PoolHeader* pool = reinterpret_cast<PoolHeader*>(
+        reinterpret_cast<size_t>(ptr) & POOL_MASK
+    );
     // update nodes to point to the newly create Node
-    Node* head = (Node*) &pool->head;
+    Node* head = reinterpret_cast<Node*>(&pool->head);
     if (head->next == nullptr) {
         head->next = newNode;
     } else {
-        void* vPtr = (void*) ptr;
-        while (vPtr < head) {
+        while (ptr < head) {
             head = head->next;
         }
         newNode->next = head->next;
@@ -138,8 +147,8 @@ void LinkedPool<T>::deallocate(void* ptr) {
 
 template<typename T>
 void* LinkedPool<T>::nextFree(Pool pool) {
-    PoolHeader* header = (PoolHeader*) pool;
-    Node* head = (Node*) &header->head;
+    PoolHeader* header = reinterpret_cast<PoolHeader*>(pool);
+    Node* head = reinterpret_cast<Node*>(&header->head);
     if (head->next) {
         void* toReturn = head->next;
         head->next = head->next->next;
@@ -152,4 +161,5 @@ void* LinkedPool<T>::nextFree(Pool pool) {
     return head->next;
 }
 
+}
 #endif // __LINKED_POOL_H__

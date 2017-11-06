@@ -9,6 +9,7 @@
 #include "TestObject.h"
 #include "linked_pool/LinkedPool.h"
 
+using efficient_pools::LinkedPool;
 using std::pair;
 using std::make_pair;
 using std::vector;

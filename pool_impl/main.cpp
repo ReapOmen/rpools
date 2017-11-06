@@ -9,6 +9,7 @@
 
 using std::cout;
 using std::endl;
+using efficient_pools::LinkedPool;
 
 class Test {
     int x, y, z, x1;

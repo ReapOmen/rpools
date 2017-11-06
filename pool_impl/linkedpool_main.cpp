@@ -5,6 +5,8 @@ using std::vector;
 #include <iostream>
 using std::cout;
 using std::endl;
+using efficient_pools::LinkedPool;
+
 
 struct Test {
     Test() = default;

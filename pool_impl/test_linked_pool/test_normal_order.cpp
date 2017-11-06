@@ -6,6 +6,8 @@
 #include "TestObject.h"
 #include "linked_pool/LinkedPool.h"
 
+using efficient_pools::LinkedPool;
+
 /**
    Allocates a number of TestObjects on the heap and deallocates
    them in reverse order of insertion.
