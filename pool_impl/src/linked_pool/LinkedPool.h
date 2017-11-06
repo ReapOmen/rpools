@@ -43,23 +43,23 @@ public:
     /**
        Deallocates the given pointer that was allocated using the allocate
        method.
-       @param ptr - a pointer to an object that will be deallocated
+       @param t_ptr - a pointer to an object that will be deallocated
      */
-    void deallocate(void* ptr);
+    void deallocate(void* t_ptr);
 
 private:
 
     static const size_t PAGE_SIZE;
     static const size_t POOL_MASK;
 
-    const size_t _poolSize;
-    Pool _freePool;
-    std::unordered_set<Pool> _freePools;
+    const size_t m_poolSize;
+    Pool m_freePool;
+    std::unordered_set<Pool> m_freePools;
 
     /**
        Returns a pointer to the next free slot of memory from the given Pool.
      */
-    void* nextFree(Pool ptr);
+    void* nextFree(Pool t_ptr);
 };
 
 template<typename T>
@@ -71,18 +71,18 @@ const size_t LinkedPool<T>::POOL_MASK = -1 >> (size_t) std::log2(LinkedPool::PAG
 
 template<typename T>
 LinkedPool<T>::LinkedPool()
-    : _poolSize((PAGE_SIZE - sizeof(PoolHeader)) / sizeof(T)),
-      _freePool(nullptr),
-      _freePools() {
+    : m_poolSize((PAGE_SIZE - sizeof(PoolHeader)) / sizeof(T)),
+      m_freePool(nullptr),
+      m_freePools() {
 }
 
 template<typename T>
 void* LinkedPool<T>::allocate() {
-    if (_freePool) {
-        return nextFree(_freePool);
-    } else if (_freePools.size() > 0) {
-        _freePool = *_freePools.begin();
-         return nextFree(_freePool);
+    if (m_freePool) {
+        return nextFree(m_freePool);
+    } else if (m_freePools.size() > 0) {
+        m_freePool = *m_freePools.begin();
+         return nextFree(m_freePool);
     } else {
         // create a new pool because there are no free pool slots left
         Pool pool = aligned_alloc(PAGE_SIZE, PAGE_SIZE);
@@ -91,15 +91,15 @@ void* LinkedPool<T>::allocate() {
         *header = PoolHeader();
         header->head.next = reinterpret_cast<Node*>(header + 1);
         T* first = reinterpret_cast<T*>(header + 1);
-        for (int i = 0; i < _poolSize - 1; ++i) {
+        for (int i = 0; i < m_poolSize - 1; ++i) {
             Node* node = reinterpret_cast<Node*>(first);
             *node = Node();
             node->next = reinterpret_cast<Node*>(++first);
         }
         Node* node = reinterpret_cast<Node*>(first);
         *node = Node();
-        _freePools.insert(pool);
-        _freePool = pool;
+        m_freePools.insert(pool);
+        m_freePool = pool;
         return nextFree(pool);
     }
 }
@@ -107,19 +107,19 @@ void* LinkedPool<T>::allocate() {
 
 
 template<typename T>
-void LinkedPool<T>::deallocate(void* ptr) {
-    Node* newNode = reinterpret_cast<Node*>(ptr);
+void LinkedPool<T>::deallocate(void* t_ptr) {
+    Node* newNode = reinterpret_cast<Node*>(t_ptr);
     *newNode = Node();
     // get the pool of ptr
     PoolHeader* pool = reinterpret_cast<PoolHeader*>(
-        reinterpret_cast<size_t>(ptr) & POOL_MASK
+        reinterpret_cast<size_t>(t_ptr) & POOL_MASK
     );
     // update nodes to point to the newly create Node
     Node* head = &pool->head;
     if (head->next == nullptr) {
         head->next = newNode;
     } else {
-        while (ptr < head) {
+        while (t_ptr < head) {
             head = head->next;
         }
         newNode->next = head->next;
@@ -128,13 +128,13 @@ void LinkedPool<T>::deallocate(void* ptr) {
     // pool is empty, let's free it!
     size_t newSize = --pool->sizeOfPool;
     if (newSize == 0) {
-        _freePools.erase(pool);
+        m_freePools.erase(pool);
         free(pool);
-        _freePool = _freePools.size() == 0 ? nullptr : *_freePools.begin();
+        m_freePool = m_freePools.size() == 0 ? nullptr : *m_freePools.begin();
     } else {
-        _freePool = pool;
-        if (newSize == _poolSize - 1) {
-            _freePools.insert(_freePool);
+        m_freePool = pool;
+        if (newSize == m_poolSize - 1) {
+            m_freePools.insert(m_freePool);
         }
     }
 }
@@ -146,9 +146,9 @@ void* LinkedPool<T>::nextFree(Pool pool) {
     if (head->next) {
         void* toReturn = head->next;
         head->next = head->next->next;
-        if (++(header->sizeOfPool) == _poolSize) {
-            _freePools.erase(pool);
-            _freePool = _freePools.size() == 0 ? nullptr : *_freePools.begin();
+        if (++(header->sizeOfPool) == m_poolSize) {
+            m_freePools.erase(pool);
+            m_freePool = m_freePools.size() == 0 ? nullptr : *m_freePools.begin();
         }
         return toReturn;
     }
