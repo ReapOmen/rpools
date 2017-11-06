@@ -14,6 +14,12 @@ struct Node {
     Node* next;
 };
 
+/**
+   Every pool will have a PoolHeader, which contains information
+   about it. 'sizeOfPool' denotes the number of slots that are
+   occupied in the pool. 'head' denotes a Node which points to
+   the first free slot.
+ */
 struct PoolHeader {
     size_t sizeOfPool;
     Node head;
@@ -22,6 +28,8 @@ struct PoolHeader {
 /**
    LinkedPool is a pool allocation system which tries to minimise the amount
    of overheads created by allocating lots of objects on the heap.
+   It works by allocating pools in chunks of PAGE_SIZE which makes deallocation
+   very quick.
  */
 template<typename T>
 class LinkedPool {
@@ -34,15 +42,16 @@ public:
     LinkedPool();
 
     /**
-       Allocates an object in one of the free slots and returns a pointer
-       to it. The object's default constructor will be called.
-       @return A pointer to the newly created object of type T.
+       Allocates space for an object of type T in one of the free slots
+       and returns a pointer the mmeory location of where the object will be
+       stored.
+       @return A pointer to the newly allocated space for T.
      */
     void* allocate();
 
     /**
-       Deallocates the given pointer that was allocated using the allocate
-       method.
+       Deallocates the memory that is used by the object of type T whose
+       pointer is supplied.
        @param t_ptr - a pointer to an object that will be deallocated
      */
     void deallocate(void* t_ptr);
@@ -50,6 +59,7 @@ public:
 private:
 
     static const size_t PAGE_SIZE;
+    // mask which is used to get the PoolHeader in constant time
     static const size_t POOL_MASK;
 
     const size_t m_poolSize;
@@ -103,8 +113,6 @@ void* LinkedPool<T>::allocate() {
         return nextFree(pool);
     }
 }
-
-
 
 template<typename T>
 void LinkedPool<T>::deallocate(void* t_ptr) {
