@@ -16,12 +16,7 @@ struct Node {
 
 struct PoolHeader {
     size_t sizeOfPool;
-    Node* head;
-
-    PoolHeader(char* start)
-        : sizeOfPool(0),
-          head(new(start + sizeof(size_t)) Node()) {
-    }
+    Node head;
 };
 
 /**
@@ -53,11 +48,9 @@ public:
     void deallocate(void* ptr);
 
 private:
-    // because we allocate memory in chunks of 4096 bytes,
-    // we are only interested in the first 52 high order bits
+
     static const size_t PAGE_SIZE;
     static const size_t POOL_MASK;
-
 
     const size_t _poolSize;
     Pool _freePool;
@@ -95,10 +88,9 @@ void* LinkedPool<T>::allocate() {
         Pool pool = aligned_alloc(PAGE_SIZE, PAGE_SIZE);
         // init all the metadata
         PoolHeader* header = reinterpret_cast<PoolHeader*> (pool);
-        *header = PoolHeader(reinterpret_cast<char*> (pool));
-        Node* head = header->head;
-        head->next = head + 1;
-        T* first = reinterpret_cast<T*>(head->next);
+        *header = PoolHeader();
+        header->head.next = reinterpret_cast<Node*>(header + 1);
+        T* first = reinterpret_cast<T*>(header + 1);
         for (int i = 0; i < _poolSize - 1; ++i) {
             Node* node = reinterpret_cast<Node*>(first);
             *node = Node();
@@ -112,6 +104,8 @@ void* LinkedPool<T>::allocate() {
     }
 }
 
+
+
 template<typename T>
 void LinkedPool<T>::deallocate(void* ptr) {
     Node* newNode = reinterpret_cast<Node*>(ptr);
@@ -121,7 +115,7 @@ void LinkedPool<T>::deallocate(void* ptr) {
         reinterpret_cast<size_t>(ptr) & POOL_MASK
     );
     // update nodes to point to the newly create Node
-    Node* head = reinterpret_cast<Node*>(&pool->head);
+    Node* head = &pool->head;
     if (head->next == nullptr) {
         head->next = newNode;
     } else {
@@ -148,7 +142,7 @@ void LinkedPool<T>::deallocate(void* ptr) {
 template<typename T>
 void* LinkedPool<T>::nextFree(Pool pool) {
     PoolHeader* header = reinterpret_cast<PoolHeader*>(pool);
-    Node* head = reinterpret_cast<Node*>(&header->head);
+    Node* head = &(header->head);
     if (head->next) {
         void* toReturn = head->next;
         head->next = head->next->next;
