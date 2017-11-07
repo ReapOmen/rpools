@@ -34,6 +34,9 @@ struct PoolHeader {
 template<typename T>
 class LinkedPool {
 public:
+    static const size_t PAGE_SIZE;
+    // mask which is used to get the PoolHeader in constant time
+    static const size_t POOL_MASK;
 
     /**
        Creates a LinkedPool allocator that will allocate objects of type T
@@ -56,11 +59,9 @@ public:
      */
     void deallocate(void* t_ptr);
 
-private:
+    size_t getPoolSize() { return m_poolSize; }
 
-    static const size_t PAGE_SIZE;
-    // mask which is used to get the PoolHeader in constant time
-    static const size_t POOL_MASK;
+private:
 
     const size_t m_poolSize;
     Pool m_freePool;
@@ -127,9 +128,6 @@ void LinkedPool<T>::deallocate(void* t_ptr) {
     if (head->next == nullptr) {
         head->next = newNode;
     } else {
-        while (t_ptr < head) {
-            head = head->next;
-        }
         newNode->next = head->next;
         head->next = newNode;
     }
