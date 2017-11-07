@@ -64,7 +64,6 @@ public:
 private:
 
     const size_t m_poolSize;
-    Pool m_freePool;
     std::unordered_set<Pool> m_freePools;
 
     /**
@@ -83,17 +82,13 @@ const size_t LinkedPool<T>::POOL_MASK = -1 >> (size_t) std::log2(LinkedPool::PAG
 template<typename T>
 LinkedPool<T>::LinkedPool()
     : m_poolSize((PAGE_SIZE - sizeof(PoolHeader)) / sizeof(T)),
-      m_freePool(nullptr),
       m_freePools() {
 }
 
 template<typename T>
 void* LinkedPool<T>::allocate() {
-    if (m_freePool) {
-        return nextFree(m_freePool);
-    } else if (m_freePools.size() > 0) {
-        m_freePool = *m_freePools.begin();
-         return nextFree(m_freePool);
+    if (m_freePools.size() > 0) {
+         return nextFree(*m_freePools.begin());
     } else {
         // create a new pool because there are no free pool slots left
         Pool pool = aligned_alloc(PAGE_SIZE, PAGE_SIZE);
@@ -110,7 +105,6 @@ void* LinkedPool<T>::allocate() {
         Node* node = reinterpret_cast<Node*>(first);
         *node = Node();
         m_freePools.insert(pool);
-        m_freePool = pool;
         return nextFree(pool);
     }
 }
@@ -136,11 +130,9 @@ void LinkedPool<T>::deallocate(void* t_ptr) {
     if (newSize == 0) {
         m_freePools.erase(pool);
         free(pool);
-        m_freePool = m_freePools.size() == 0 ? nullptr : *m_freePools.begin();
     } else {
-        m_freePool = pool;
         if (newSize == m_poolSize - 1) {
-            m_freePools.insert(m_freePool);
+            m_freePools.insert(pool);
         }
     }
 }
@@ -154,7 +146,6 @@ void* LinkedPool<T>::nextFree(Pool pool) {
         head->next = head->next->next;
         if (++(header->sizeOfPool) == m_poolSize) {
             m_freePools.erase(pool);
-            m_freePool = m_freePools.size() == 0 ? nullptr : *m_freePools.begin();
         }
         return toReturn;
     }

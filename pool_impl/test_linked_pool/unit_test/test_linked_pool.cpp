@@ -121,6 +121,10 @@ void test_interleaving() {
     // now head -> 6 -> ...
     objs.push_back(new (lp.allocate()) T());
     REQUIRE(objs[5] == objs[0] + 5);
+
+    for (int i = 0; i < objs.size(); ++i) {
+        lp.deallocate(objs[i]);
+    }
 }
 
 TEST_CASE("(De)allocation sequence produces correct result", "[LinkedPool]") {
@@ -129,5 +133,40 @@ TEST_CASE("(De)allocation sequence produces correct result", "[LinkedPool]") {
     }
     SECTION("TestObject2") {
         test_interleaving<TestObject2>();
+    }
+}
+
+template<typename T>
+void test_pools_fill_up() {
+    LinkedPool<T> lp;
+    size_t size = lp.getPoolSize() * 2;
+    vector<T*> objs(size);
+    for (int i = 0; i < size; ++i) {
+        objs[i] = new (lp.allocate()) T();
+    }
+    T* firstDealloc = objs[size - 1];
+    lp.deallocate(objs[size - 1]);
+    T* secondDealloc = objs[size / 2 - 1];
+    lp.deallocate(objs[size / 2 - 1]);
+    objs[size - 1] = new (lp.allocate()) T();
+    // new allocation should be placed either in the first or second pool
+    REQUIRE(((objs[size - 1] == firstDealloc)
+             || (objs[size - 1] == secondDealloc)));
+    objs[size / 2 - 1] = new (lp.allocate()) T();
+    // same for the second allocation.
+    // If the first one was placed in pool 1 then this will be placed in pool 2.
+    REQUIRE(((objs[size / 2 - 1] == firstDealloc)
+             || (objs[size / 2 - 1] == secondDealloc)));
+    for (int i = 0; i < objs.size(); ++i) {
+        lp.deallocate(objs[i]);
+    }
+}
+
+TEST_CASE("A new pool allocates iff all the other pools are full", "[LinkedPool]") {
+    SECTION("TestObject") {
+        test_pools_fill_up<TestObject>();
+    }
+    SECTION("TestObject2") {
+        test_pools_fill_up<TestObject2>();
     }
 }
