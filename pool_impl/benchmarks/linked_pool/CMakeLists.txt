@@ -1,0 +1,5 @@
+add_executable(bench_normal bench_normal_order.cpp)
+add_executable(bench_worst bench_worst_order.cpp)
+add_executable(bench_random bench_random_order.cpp)
+add_executable(bench_specified bench_specified_order.cpp)
+add_executable(bench_random2 bench_random2_order.cpp)

@@ -6,32 +6,49 @@
 #include <time.h>
 
 #include "Utility.h"
-#include "TestObject.h"
+#include "unit_test/TestObject.h"
 #include "linked_pool/LinkedPool.h"
+#include "linked_pool/LinkedPool2.h"
+#include "linked_pool/LinkedPool3.h"
+#include "linked_pool/LinkedPool4.h"
 
+using efficient_pools::LinkedPool;
+using efficient_pools2::LinkedPool2;
+using efficient_pools3::LinkedPool3;
+using efficient_pools4::LinkedPool4;
 using std::pair;
 using std::make_pair;
 using std::vector;
 
-void allocateN(const pair<int, int>& range, vector<TestObject*>& vec) {
+float allocateN(const pair<int, int>& range, vector<TestObject*>& vec) {
+    std::clock_t start = std::clock();
     for (int i = range.first; i < range.second; ++i) {
         vec[i] = new TestObject();
     }
+    return (std::clock() - start) / (double)(CLOCKS_PER_SEC / 1000);
 }
 
-void deallocateN(size_t index, vector<TestObject*>& vec) {
+float deallocateN(size_t index, vector<TestObject*>& vec) {
+    std::clock_t start = std::clock();
     delete vec[index];
+    return (std::clock() - start) / (double)(CLOCKS_PER_SEC / 1000);
 }
 
-void allocateN(const pair<int, int>& range, vector<TestObject*>& vec,
-               LinkedPool<TestObject>& lp) {
+template<template <typename> class T>
+float allocateN(const pair<int, int>& range, vector<TestObject*>& vec,
+               T<TestObject>& lp) {
+    std::clock_t start = std::clock();
     for (int i = range.first; i < range.second; ++i) {
         vec[i] = (TestObject*) lp.allocate();
     }
+    return (std::clock() - start) / (double)(CLOCKS_PER_SEC / 1000);
 }
 
-void deallocateN(size_t index, vector<TestObject*>& vec, LinkedPool<TestObject>& lp) {
+template<template <typename> class T>
+float deallocateN(size_t index, vector<TestObject*>& vec, T<TestObject>& lp) {
+    std::clock_t start = std::clock();
     lp.deallocate(vec[index]);
+    return (std::clock() - start) / (double)(CLOCKS_PER_SEC / 1000);
 }
 
 size_t SEED = std::chrono::system_clock::now().time_since_epoch().count();
@@ -50,6 +67,27 @@ void pushAndPop(vector<pair<size_t, bool>>& vec,
     }
 }
 
+template<template <typename> class T>
+void benchPool(size_t BOUND, std::ofstream& f,
+               const vector<pair<size_t, bool>>& order,
+               const std::string& name) {
+    T<TestObject> lp;
+    vector<TestObject*> objs(BOUND);
+    float alloc = 0.0f;
+    float dealloc = 0.0f;
+    size_t startIndex = 0;
+    for (const auto& pair : order) {
+        if (!pair.second) {
+            alloc += allocateN(make_pair(startIndex, startIndex + pair.first), objs, lp);
+            startIndex += pair.first;
+        } else {
+            dealloc += deallocateN(pair.first, objs, lp);
+        }
+    }
+    printToFile(f, "TestObject", alloc, false, name);
+    printToFile(f, "TestObject", dealloc, true, name);
+}
+
 /**
    Allocates and deallocates a number of TestObjects on the heap in a certain
    order. This order is defined as follows: take a random number N < BOUND
@@ -60,17 +98,18 @@ void pushAndPop(vector<pair<size_t, bool>>& vec,
    This is done until BOUND objects have been allocate and deallocated.
    The order of (de)allocation is saved so that both implementations will
    (de)allocate in the same order.
-   Allocation and deallocation is done with both new/delete and LinkedPool.
+   Allocation and deallocation is done with both new/delete and LinkedPools.
    The results will be written to a file called `random2_time_taken.txt' and
    it will be of the form:
      Allocating <ARG> objects.
-     Regular: X ms
-     LinkedPool: Y ms
+     Allocate TestObject normally: X ms
+     Deallocate TestObject normally: Y ms
+     Allocate TestObject with LinkedPool: X1 ms
+     Deallocate TestObject with LinkedPool: Y1 ms
+     ...
  */
 int main(int argc, char *argv[]) {
     size_t BOUND = argc > 1 ? std::stoul(argv[1]) : 10000;
-
-    std::clock_t start;
     std::ofstream f("random2_time_taken.txt");
 
     time_t seconds;
@@ -106,38 +145,31 @@ int main(int argc, char *argv[]) {
     f << "Allocating " << BOUND << " objects." << std::endl;
     {
         vector<TestObject*> objs(BOUND);
-        start = std::clock();
+        float alloc = 0.0f;
+        float dealloc = 0.0f;
         size_t startIndex = 0;
         for (const auto& pair : order) {
             if (!pair.second) {
-                allocateN(make_pair(startIndex, startIndex + pair.first), objs);
+                alloc += allocateN(make_pair(startIndex, startIndex + pair.first), objs);
                 startIndex += pair.first;
             } else {
-                deallocateN(pair.first, objs);
+                dealloc += deallocateN(pair.first, objs);
             }
         }
-
-        f << "Regular: "
-          << (std::clock() - start) / (double)(CLOCKS_PER_SEC / 1000)
-          << " ms" << std::endl;
+        printToFile(f, "TestObject", alloc, false, "Regular");
+        printToFile(f, "TestObject", dealloc, true, "Regular");
     }
     {
-        LinkedPool<TestObject> lp;
-        vector<TestObject*> objs(BOUND);
-        start = std::clock();
-        size_t startIndex = 0;
-        for (const auto& pair : order) {
-            if (!pair.second) {
-                allocateN(make_pair(startIndex, startIndex + pair.first), objs, lp);
-                startIndex += pair.first;
-            } else {
-                deallocateN(pair.first, objs, lp);
-            }
-        }
-
-        f << "LinkedPool: "
-          << (std::clock() - start) / (double)(CLOCKS_PER_SEC / 1000)
-          << " ms" << std::endl;
+        benchPool<LinkedPool>(BOUND, f, order, "LinkedPool");
+    }
+    {
+        benchPool<LinkedPool2>(BOUND, f, order, "LinkedPool2");
+    }
+    {
+        benchPool<LinkedPool3>(BOUND, f, order, "LinkedPool3");
+    }
+    {
+        benchPool<LinkedPool4>(BOUND, f, order, "LinkedPool4");
     }
     return 0;
 }

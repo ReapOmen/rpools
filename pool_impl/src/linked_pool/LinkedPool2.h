@@ -1,12 +1,12 @@
-#ifndef __LINKED_POOL_H__
-#define __LINKED_POOL_H__
+#ifndef __LINKED_POOL_2_H__
+#define __LINKED_POOL_2_H__
 
 #include <cstdlib>
 #include <unistd.h>
-#include <unordered_set>
+#include <set>
 #include <cmath>
 
-namespace efficient_pools {
+namespace efficient_pools2 {
 
 using Pool = void*;
 
@@ -32,7 +32,7 @@ struct PoolHeader {
    very quick.
  */
 template<typename T>
-class LinkedPool {
+class LinkedPool2 {
 public:
     static const size_t PAGE_SIZE;
     // mask which is used to get the PoolHeader in constant time
@@ -42,7 +42,7 @@ public:
        Creates a LinkedPool allocator that will allocate objects of type T
        in pools and return pointers to them.
      */
-    LinkedPool();
+    LinkedPool2();
 
     /**
        Allocates space for an object of type T in one of the free slots
@@ -64,7 +64,7 @@ public:
 private:
 
     const size_t m_poolSize;
-    std::unordered_set<Pool> m_freePools;
+    std::set<Pool> m_freePools;
 
     /**
        Returns a pointer to the next free slot of memory from the given Pool.
@@ -73,20 +73,20 @@ private:
 };
 
 template<typename T>
-const size_t LinkedPool<T>::PAGE_SIZE = sysconf(_SC_PAGESIZE);
+const size_t LinkedPool2<T>::PAGE_SIZE = sysconf(_SC_PAGESIZE);
 
 template<typename T>
-const size_t LinkedPool<T>::POOL_MASK = -1 >> (size_t) std::log2(LinkedPool::PAGE_SIZE)
-                                        << (size_t) std::log2(LinkedPool::PAGE_SIZE);
+const size_t LinkedPool2<T>::POOL_MASK = -1 >> (size_t) std::log2(LinkedPool2::PAGE_SIZE)
+                                        << (size_t) std::log2(LinkedPool2::PAGE_SIZE);
 
 template<typename T>
-LinkedPool<T>::LinkedPool()
+LinkedPool2<T>::LinkedPool2()
     : m_poolSize((PAGE_SIZE - sizeof(PoolHeader)) / sizeof(T)),
       m_freePools() {
 }
 
 template<typename T>
-void* LinkedPool<T>::allocate() {
+void* LinkedPool2<T>::allocate() {
     if (m_freePools.size() > 0) {
          return nextFree(*m_freePools.begin());
     } else {
@@ -110,7 +110,7 @@ void* LinkedPool<T>::allocate() {
 }
 
 template<typename T>
-void LinkedPool<T>::deallocate(void* t_ptr) {
+void LinkedPool2<T>::deallocate(void* t_ptr) {
     Node* newNode = reinterpret_cast<Node*>(t_ptr);
     *newNode = Node();
     // get the pool of ptr
@@ -138,7 +138,7 @@ void LinkedPool<T>::deallocate(void* t_ptr) {
 }
 
 template<typename T>
-void* LinkedPool<T>::nextFree(Pool pool) {
+void* LinkedPool2<T>::nextFree(Pool pool) {
     PoolHeader* header = reinterpret_cast<PoolHeader*>(pool);
     Node* head = &(header->head);
     if (head->next) {
