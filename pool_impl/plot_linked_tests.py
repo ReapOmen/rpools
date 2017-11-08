@@ -8,21 +8,22 @@ NUM_OF_IMPLEMENTATIONS = 0
 FILE = ''
 EXEC = ''
 LIMIT = 100000
-labels = set()
+labels = []
 
 
 def get_alloc_time():
     lst = []
     num = 0
+    labels = []
     with open(FILE) as f:
         for line in f:
             if not line.endswith('.\n'):
                 split = line.split(' ')
-                labels.add(split[2][0:-1])
+                labels.append(split[2][0:-1])
                 lst.append(float(split[-2]))
             else:
                 num = int(line.split(' ')[1])
-    return (num, lst)
+    return (num, lst, labels)
 
 
 def call_test(allocs):
@@ -39,6 +40,7 @@ def plot():
     for i in alloc_range:
         print("\r", i, "/", LIMIT, end="")
         call_test(i)
+        labels = []
         alloc_time = get_alloc_time()
         plot_alloc_range.append(alloc_time[0])
         if not is_init:
@@ -48,11 +50,10 @@ def plot():
             is_init = True
         for j in range(0, NUM_OF_IMPLEMENTATIONS):
             index = j * 2
+            labels.append(alloc_time[2][index])
             alloc_time_plot[j].append(alloc_time[1][index])
             dealloc_time_plot[j].append(alloc_time[1][index + 1])
     print()
-    labels = list(labels)
-    labels.sort()
     plot_time(plot_alloc_range, alloc_time_plot, 211,
               'Allocation time of the %d implementations' %
               (NUM_OF_IMPLEMENTATIONS))
