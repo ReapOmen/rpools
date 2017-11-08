@@ -1,0 +1,11 @@
+language: cpp
+
+compiler:
+  - gcc
+  - clang
+
+install:
+  - cd pool_impl && mkdir build && cd build && cmake .. && make
+
+script:
+  - make test
