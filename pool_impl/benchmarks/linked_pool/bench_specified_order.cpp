@@ -82,8 +82,8 @@ void benchPool(size_t BOUND, std::ofstream& f,
     alloc += allocateN(five, objs, lp);
     dealloc += deallocateN(ten, objs, lp);
 
-    printToFile(f, "TestObject", alloc, false, name);
-    printToFile(f, "TestObject", dealloc, true, name);
+    printToFile2(f, "TestObject", alloc, false, name);
+    printToFile2(f, "TestObject", dealloc, true, name);
 }
 
 /**
@@ -135,8 +135,8 @@ int main(int argc, char *argv[]) {
         alloc += allocateN(five, objs);
         dealloc += deallocateN(ten, objs);
 
-        printToFile(f, "TestObject", alloc, false, "Regular");
-        printToFile(f, "TestObject", dealloc, true, "Regular");
+        printToFile2(f, "TestObject", alloc, false, "Regular");
+        printToFile2(f, "TestObject", dealloc, true, "Regular");
     }
     {
         benchPool<LinkedPool>(BOUND, f, five, ten, "LinkedPool");
