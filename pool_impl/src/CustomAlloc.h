@@ -23,9 +23,13 @@ struct mallocator {
         }
         throw std::bad_alloc();
     }
+
     void deallocate(T* ptr, std::size_t n) {
         std::free(ptr);
     }
+
+    template <typename U>
+    using  rebind = mallocator<U>;
 };
 
 template <typename T, typename U>
