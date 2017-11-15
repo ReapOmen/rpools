@@ -17,3 +17,13 @@ Examples:
 Explanation (can also be found in the help menu of the script):
 * `./build/benchmarks/linked_pool/bench_random` - the executable that we want to execute
 * `100000` - the upperbound of objects that will be created (in the case of `bench_worst`, the upperbound is multiplied by the size of the pool)
+
+
+# plot_memory_usage
+
+This is used to plot the output of the command:
+`valgrind --tool=massif --stacks=yes --time-unit=ms`
+on all the executables from `benchmarks/memory_usage/`.
+
+Usage (make sure you build the project first):
+* `python3 plot_memory_usage.py -h` to see the help menu

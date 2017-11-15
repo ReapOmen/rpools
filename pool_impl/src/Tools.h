@@ -3,14 +3,29 @@
 #include <string>
 #include <fstream>
 
-std::string getPeakHeapUsage() {
-    auto pid =  getpid();
+auto pid =  getpid();
+
+std::string __getStatusField(const std::string& field) {
     std::ifstream f("/proc/" + std::to_string(pid) + "/status");
     std::string temp = "";
     while(std::getline(f, temp)) {
-        if (temp.substr(0, 6) == "VmPeak") {
+        if (temp.substr(0, field.size()) == field) {
             break;
         }
     }
-    return temp;
+    std::string num = "";
+    for (char c : temp) {
+        if (c >= '0' && c <= '9') {
+            num += c;
+        }
+    }
+    return num;
+}
+
+std::string getHeapUsage() {
+    return __getStatusField("VmSize");
+}
+
+std::string getPeakHeapUsage() {
+    return __getStatusField("VmPeak");
 }
