@@ -1,5 +1,5 @@
-#ifndef __LINKED_POOL_H__
-#define __LINKED_POOL_H__
+#ifndef __GLOBAL_LINKED_POOL_H__
+#define __GLOBAL_LINKED_POOL_H__
 
 #include <cstdlib>
 #include <unistd.h>
@@ -177,4 +177,4 @@ const PoolHeader& GlobalLinkedPool::getPoolHeader(void* t_ptr) {
 }
 
 }
-#endif // __LINKED_POOL_H__
+#endif // __GLOBAL_LINKED_POOL_H__

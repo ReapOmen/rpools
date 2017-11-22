@@ -34,12 +34,12 @@ struct mallocator {
 
 template <typename T, typename U>
 inline bool operator == (const mallocator<T>&, const mallocator<U>&) {
-  return true;
+    return true;
 }
 
 template <typename T, typename U>
 inline bool operator != (const mallocator<T>& a, const mallocator<U>& b) {
-  return !(a == b);
+    return !(a == b);
 }
 
 #endif // __CUSTOM_ALLOC_H__

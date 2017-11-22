@@ -1,4 +1,5 @@
-add_executable(bench_normal bench_normal_order.cpp)
+# set(CMAKE_CXX_FLAGS "-include ${LP_PATH}/custom_new_delete.h ${CMAKE_CXX_FLAGS}")
+add_executable(bench_normal bench_normal_order.cpp ${SOURCES})
 add_executable(bench_worst bench_worst_order.cpp)
 add_executable(bench_random bench_random_order.cpp)
 add_executable(bench_specified bench_specified_order.cpp)

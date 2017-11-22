@@ -1,3 +1,4 @@
+#include "custom_new_delete.h"
 #include <vector>
 #include <string>
 #include <iostream>
@@ -16,7 +17,7 @@ using efficient_pools4::LinkedPool4;
 
 template<template <typename> class T>
 void benchPool(size_t BOUND, std::ofstream& f, const std::string& name) {
-    LinkedPool<TestObject> lp;
+    T<TestObject> lp;
     std::vector<TestObject*> objs;
     objs.reserve(BOUND);
     std::clock_t start = std::clock();
