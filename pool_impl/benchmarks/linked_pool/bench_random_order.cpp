@@ -23,13 +23,13 @@ void benchPool(size_t BOUND, std::ofstream& f,
     vector<TestObject*> objs;
     objs.reserve(BOUND);
     std::clock_t start = std::clock();
-    for (int i = 0; i < BOUND; ++i) {
+    for (size_t i = 0; i < BOUND; ++i) {
         objs.push_back((TestObject*) lp.allocate());
     }
     printToFile(f, "TestObject", start, false, name);
 
     start = std::clock();
-    for (int i = 0; i < BOUND; ++i) {
+    for (size_t i = 0; i < BOUND; ++i) {
         lp.deallocate(objs[randomPos[i]]);
     }
     printToFile(f, "TestObject", start, true, name);
@@ -69,13 +69,13 @@ int main(int argc, char *argv[]) {
         vector<TestObject*> objs;
         objs.reserve(BOUND);
         std::clock_t start = std::clock();
-        for (int i = 0; i < BOUND; ++i) {
+        for (size_t i = 0; i < BOUND; ++i) {
             objs.push_back(new TestObject());
         }
         printToFile(f, "TestObject", start, false, "Regular");
 
         start = std::clock();
-        for (int i = 0; i < BOUND; ++i) {
+        for (size_t i = 0; i < BOUND; ++i) {
             delete objs[randomPos[i]];
         }
         printToFile(f, "TestObject", start, true, "Regular");

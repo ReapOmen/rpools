@@ -18,7 +18,7 @@ using std::vector;
 
 float allocateN(size_t num, vector<TestObject*>& vec) {
     std::clock_t start = std::clock();
-    for (int i = 0; i < num; ++i) {
+    for (size_t i = 0; i < num; ++i) {
         vec.push_back(new TestObject());
     }
     return (std::clock() - start) / (double)(CLOCKS_PER_SEC / 1000);
@@ -26,7 +26,7 @@ float allocateN(size_t num, vector<TestObject*>& vec) {
 
 float deallocateN(size_t num, vector<TestObject*>& vec) {
     std::clock_t start = std::clock();
-    for (int i = 0; i < num; ++i) {
+    for (size_t i = 0; i < num; ++i) {
         delete vec.back();
         vec.pop_back();
     }
@@ -36,7 +36,7 @@ float deallocateN(size_t num, vector<TestObject*>& vec) {
 template<template <typename> class T>
 float allocateN(size_t num, vector<TestObject*>& vec, T<TestObject>& lp) {
     std::clock_t start = std::clock();
-    for (int i = 0; i < num; ++i) {
+    for (size_t i = 0; i < num; ++i) {
         vec.push_back((TestObject*) lp.allocate());
     }
     return (std::clock() - start) / (double)(CLOCKS_PER_SEC / 1000);
@@ -45,7 +45,7 @@ float allocateN(size_t num, vector<TestObject*>& vec, T<TestObject>& lp) {
 template<template <typename> class T>
 float deallocateN(size_t num, vector<TestObject*>& vec, T<TestObject>& lp) {
     std::clock_t start = std::clock();
-    for (int i = 0; i < num; ++i) {
+    for (size_t i = 0; i < num; ++i) {
         lp.deallocate(vec.back());
         vec.pop_back();
     }
@@ -103,7 +103,6 @@ void benchPool(size_t BOUND, std::ofstream& f,
 int main(int argc, char *argv[]) {
     size_t BOUND = argc > 1 ? std::stoul(argv[1]) : 10000;
 
-    std::clock_t start;
     std::ofstream f("specified_time_taken.txt");
 
     size_t five = BOUND * 5 / 100;

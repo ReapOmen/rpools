@@ -20,14 +20,14 @@ void benchPool(size_t BOUND, std::ofstream& f, size_t POOL_SIZE,
     vector<TestObject*> objs2;
     objs2.reserve(BOUND);
     std::clock_t start = std::clock();
-    for (int i = 0; i < BOUND; ++i) {
+    for (size_t i = 0; i < BOUND; ++i) {
         objs2.push_back((TestObject*) lp.allocate());
     }
     printToFile(f, "TestObject", start, false,  name);
 
     start = std::clock();
-    for (int i = 0; i < POOL_SIZE; ++i) {
-        for (int offset = 0; offset < MULT; ++offset) {
+    for (size_t i = 0; i < POOL_SIZE; ++i) {
+        for (size_t offset = 0; offset < MULT; ++offset) {
             lp.deallocate(objs2[i + offset * POOL_SIZE]);
         }
     }
@@ -61,14 +61,14 @@ int main(int argc, char* argv[]) {
         vector<TestObject*> objs;
         objs.reserve(BOUND);
         std::clock_t start = std::clock();
-        for (int i = 0; i < BOUND; ++i) {
+        for (size_t i = 0; i < BOUND; ++i) {
             objs.push_back(new TestObject());
         }
         printToFile(f, "TestObject", start, false, "Regular");
 
         start = std::clock();
-        for (int i = 0; i < POOL_SIZE; ++i) {
-            for (int offset = 0; offset < MULT; ++offset) {
+        for (size_t i = 0; i < POOL_SIZE; ++i) {
+            for (size_t offset = 0; offset < MULT; ++offset) {
                 delete (objs[i + offset * POOL_SIZE]);
             }
         }

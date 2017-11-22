@@ -12,8 +12,8 @@ namespace efficient_pools {
 
 using Pool = void*;
 
-struct Node {
-    Node* next;
+struct NodeG {
+    NodeG* next;
 };
 
 /**
@@ -23,10 +23,10 @@ struct Node {
    'sizeOfObjects' denotes the size of objects that are stored in the pool.
    'head' denotes a Node which points to the first free slot.
  */
-struct PoolHeader {
+struct PoolHeaderG {
     size_t sizeOfPool;
     size_t sizeOfObjects;
-    Node head;
+    NodeG head;
 };
 
 /**
@@ -65,7 +65,7 @@ public:
 
     size_t getPoolSize() { return m_poolSize; }
 
-    static const PoolHeader& getPoolHeader(void* t_ptr);
+    static const PoolHeaderG& getPoolHeader(void* t_ptr);
 
 private:
     const size_t m_sizeOfObjects;
@@ -87,14 +87,14 @@ const size_t GlobalLinkedPool::POOL_MASK = -1 >>
 
 GlobalLinkedPool::GlobalLinkedPool()
     : m_sizeOfObjects(1),
-      m_poolSize((PAGE_SIZE - sizeof(PoolHeader)) / m_sizeOfObjects),
+      m_poolSize((PAGE_SIZE - sizeof(PoolHeaderG)) / m_sizeOfObjects),
       m_freePool(nullptr),
       m_freePools() {
 }
 
 GlobalLinkedPool::GlobalLinkedPool(size_t t_sizeOfObjects)
     : m_sizeOfObjects(t_sizeOfObjects < 8 ? 8 : t_sizeOfObjects),
-      m_poolSize((PAGE_SIZE - sizeof(PoolHeader)) / m_sizeOfObjects),
+      m_poolSize((PAGE_SIZE - sizeof(PoolHeaderG)) / m_sizeOfObjects),
       m_freePool(nullptr),
       m_freePools() {
 }
@@ -108,19 +108,19 @@ void* GlobalLinkedPool::allocate() {
         // create a new pool because there are no free pool slots left
         Pool pool = aligned_alloc(PAGE_SIZE, PAGE_SIZE);
         // init all the metadata
-        PoolHeader* header = reinterpret_cast<PoolHeader*> (pool);
-        *header = PoolHeader();
+        PoolHeaderG* header = reinterpret_cast<PoolHeaderG*> (pool);
+        *header = PoolHeaderG();
         header->sizeOfObjects = m_sizeOfObjects;
-        header->head.next = reinterpret_cast<Node*>(header + 1);
+        header->head.next = reinterpret_cast<NodeG*>(header + 1);
         char* first = reinterpret_cast<char*>(header + 1);
-        for (int i = 0; i < m_poolSize - 1; ++i) {
-            Node* node = reinterpret_cast<Node*>(first);
-            *node = Node();
+        for (size_t i = 0; i < m_poolSize - 1; ++i) {
+            NodeG* node = reinterpret_cast<NodeG*>(first);
+            *node = NodeG();
             first += m_sizeOfObjects;
-            node->next = reinterpret_cast<Node*>(first);
+            node->next = reinterpret_cast<NodeG*>(first);
         }
-        Node* node = reinterpret_cast<Node*>(first);
-        *node = Node();
+        NodeG* node = reinterpret_cast<NodeG*>(first);
+        *node = NodeG();
         m_freePools.insert(pool);
         m_freePool = pool;
         return nextFree(pool);
@@ -128,19 +128,19 @@ void* GlobalLinkedPool::allocate() {
 }
 
 void GlobalLinkedPool::deallocate(void* t_ptr) {
-    Node* newNode = reinterpret_cast<Node*>(t_ptr);
-    *newNode = Node();
+    NodeG* newNodeG = reinterpret_cast<NodeG*>(t_ptr);
+    *newNodeG = NodeG();
     // get the pool of ptr
-    PoolHeader* pool = reinterpret_cast<PoolHeader*>(
+    PoolHeaderG* pool = reinterpret_cast<PoolHeaderG*>(
         reinterpret_cast<size_t>(t_ptr) & POOL_MASK
     );
     // update nodes to point to the newly create Node
-    Node* head = &pool->head;
+    NodeG* head = &pool->head;
     if (head->next == nullptr) {
-        head->next = newNode;
+        head->next = newNodeG;
     } else {
-        newNode->next = head->next;
-        head->next = newNode;
+        newNodeG->next = head->next;
+        head->next = newNodeG;
     }
     // pool is empty, let's free it!
     size_t newSize = --pool->sizeOfPool;
@@ -157,8 +157,8 @@ void GlobalLinkedPool::deallocate(void* t_ptr) {
 }
 
 void* GlobalLinkedPool::nextFree(Pool pool) {
-    PoolHeader* header = reinterpret_cast<PoolHeader*>(pool);
-    Node* head = &(header->head);
+    PoolHeaderG* header = reinterpret_cast<PoolHeaderG*>(pool);
+    NodeG* head = &(header->head);
     if (head->next) {
         void* toReturn = head->next;
         head->next = head->next->next;
@@ -171,9 +171,9 @@ void* GlobalLinkedPool::nextFree(Pool pool) {
     return head->next;
 }
 
-const PoolHeader& GlobalLinkedPool::getPoolHeader(void* t_ptr) {
+const PoolHeaderG& GlobalLinkedPool::getPoolHeader(void* t_ptr) {
     size_t poolAddress = reinterpret_cast<size_t>(t_ptr) & POOL_MASK;
-    return *reinterpret_cast<PoolHeader*>(poolAddress);
+    return *reinterpret_cast<PoolHeaderG*>(poolAddress);
 }
 
 }

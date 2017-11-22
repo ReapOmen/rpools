@@ -10,13 +10,13 @@
 
 namespace {
     using efficient_pools::GlobalLinkedPool;
-    using efficient_pools::PoolHeader;
-    using efficient_pools::Node;
+    using efficient_pools::PoolHeaderG;
+    using efficient_pools::NodeG;
     using __Alloc = mallocator<std::pair<const size_t,
                                          efficient_pools::GlobalLinkedPool>>;
 
     const size_t __threshold = (GlobalLinkedPool::PAGE_SIZE -
-                                sizeof(PoolHeader)) / 4;
+                                sizeof(PoolHeaderG)) / 4;
 
     std::map<size_t, efficient_pools::GlobalLinkedPool,
              std::less<size_t>, __Alloc> __allocators;
@@ -32,7 +32,7 @@ void* operator new(size_t size) {
         __mallocs.insert(memLocation);
         return memLocation;
     } else {
-        size = size < sizeof(Node) ? sizeof(Node) : size;
+        size = size < sizeof(NodeG) ? sizeof(NodeG) : size;
         auto poolAlloc = __allocators.find(size);
         if (poolAlloc != __allocators.end()) {
             return poolAlloc->second.allocate();
