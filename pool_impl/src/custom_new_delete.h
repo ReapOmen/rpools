@@ -23,29 +23,32 @@ namespace {
     std::set<void*, std::less<void*>, mallocator<void*>> __mallocs;
 }
 
-void* operator new(size_t size) {
+inline void* custom_new(size_t size) throw(std::bad_alloc) {
     // if using a LinkedPool is too inneficient we will use malloc
     static AllocCollector ac;
     ac.addAllocation(size);
+    void* toRet = nullptr;
     if (size > __threshold) {
-        void* memLocation = std::malloc(size);
-        __mallocs.insert(memLocation);
-        return memLocation;
+        toRet = std::malloc(size);
+        __mallocs.insert(toRet);
     } else {
         size = size < sizeof(NodeG) ? sizeof(NodeG) : size;
         auto poolAlloc = __allocators.find(size);
         if (poolAlloc != __allocators.end()) {
-            return poolAlloc->second.allocate();
+            toRet = poolAlloc->second.allocate();
         } else {
             auto newPool = GlobalLinkedPool(size);
-            void* toReturn = newPool.allocate();
+            toRet = newPool.allocate();
             __allocators.insert(std::make_pair(size, std::move(newPool)));
-            return toReturn;
         }
     }
+    if (toRet == nullptr) {
+        throw std::bad_alloc();
+    }
+    return toRet;
 }
 
-void operator delete(void* ptr) noexcept {
+inline void custom_delete(void* ptr) throw() {
     auto bigAlloc = __mallocs.find(ptr);
     if (bigAlloc != __mallocs.end()) {
         __mallocs.erase(bigAlloc);

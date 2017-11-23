@@ -17,6 +17,8 @@ include_directories(${PROJECT_SOURCE_DIR}/tests)
 set(CMAKE_CXX_FLAGS "-Wall -Werror -pthread ${CMAKE_CXX_FLAGS}")
 
 add_subdirectory(src)
-set(SOURCES ${PROJECT_SOURCE_DIR}/src/AllocCollector.cpp)
+add_library(customnew SHARED ./src/custom_new_delete.cpp ./src/AllocCollector.cpp)
+target_include_directories(customnew PRIVATE ${LP_PATH})
+
 add_subdirectory(tests)
 add_subdirectory(benchmarks)
