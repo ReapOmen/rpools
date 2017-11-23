@@ -14,7 +14,7 @@ set(LP_PATH ${PROJECT_SOURCE_DIR}/src)
 include_directories(${LP_PATH})
 include_directories(${PROJECT_SOURCE_DIR}/tests)
 
-set(CMAKE_CXX_FLAGS "-Wall -Werror -pthread ${CMAKE_CXX_FLAGS}")
+set(CMAKE_CXX_FLAGS "-Wall -Werror -pthread -std=c++11 ${CMAKE_CXX_FLAGS}")
 
 add_subdirectory(src)
 add_library(customnew SHARED ./src/custom_new_delete.cpp ./src/AllocCollector.cpp)
