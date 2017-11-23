@@ -1,4 +1,5 @@
 #include "AllocCollector.h"
+#include <unistd.h>
 
 AllocCollector::AllocCollector()
     : m_snapshotCount(0),
@@ -19,7 +20,7 @@ void AllocCollector::addAllocation(size_t t_size) {
     if (!m_threadStarted) {
         m_threadStarted = true;
         m_snapshotThread = std::thread(&AllocCollector::run, this);
-        m_outputFile.open("alloc_snapshots.output");
+        m_outputFile.open("alloc_snapshots_" + std::to_string(getpid()) + ".output");
     }
     std::unique_lock<std::mutex> lk(m_mapLock);
     m_cv.wait(lk, [&](){return !m_waitingToPrint;});

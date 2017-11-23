@@ -1,0 +1,3 @@
+#!/bin/sh
+
+LD_PRELOAD="$PWD/build/libcustomnew.so" $1
