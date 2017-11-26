@@ -86,14 +86,14 @@ const size_t GlobalLinkedPool::POOL_MASK = -1 >>
     << (size_t) std::log2(GlobalLinkedPool::PAGE_SIZE);
 
 GlobalLinkedPool::GlobalLinkedPool()
-    : m_sizeOfObjects(1),
+    : m_sizeOfObjects(8),
       m_poolSize((PAGE_SIZE - sizeof(PoolHeaderG)) / m_sizeOfObjects),
       m_freePool(nullptr),
       m_freePools() {
 }
 
 GlobalLinkedPool::GlobalLinkedPool(size_t t_sizeOfObjects)
-    : m_sizeOfObjects(t_sizeOfObjects < 8 ? 8 : t_sizeOfObjects),
+    : m_sizeOfObjects(t_sizeOfObjects < sizeof(NodeG) ? sizeof(NodeG) : t_sizeOfObjects),
       m_poolSize((PAGE_SIZE - sizeof(PoolHeaderG)) / m_sizeOfObjects),
       m_freePool(nullptr),
       m_freePools() {
@@ -126,6 +126,8 @@ void* GlobalLinkedPool::allocate() {
         return nextFree(pool);
     }
 }
+
+
 
 void GlobalLinkedPool::deallocate(void* t_ptr) {
     NodeG* newNodeG = reinterpret_cast<NodeG*>(t_ptr);
