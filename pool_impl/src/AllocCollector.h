@@ -14,10 +14,14 @@ class AllocCollector {
 public:
     AllocCollector();
     void addAllocation(size_t t_size);
+    void removeAllocation(size_t t_size);
+    void addOverhead(size_t t_size);
+    void removeOverhead(size_t t_size);
     void takeSnapshot();
     virtual ~AllocCollector();
 private:
     size_t m_snapshotCount;
+    size_t m_overheads;
     std::ofstream m_outputFile;
     std::map<size_t, size_t,
              std::less<size_t>,

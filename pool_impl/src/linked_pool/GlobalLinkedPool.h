@@ -6,7 +6,7 @@
 #include <set>
 #include <cmath>
 
-#include "../CustomAlloc.h"
+#include "CustomAlloc.h"
 
 namespace efficient_pools {
 
@@ -63,7 +63,8 @@ public:
      */
     void deallocate(void* t_ptr);
 
-    size_t getPoolSize() { return m_poolSize; }
+    size_t getPoolSize() const { return m_poolSize; }
+    size_t getNumOfPools() const { return m_freePools.size(); }
 
     static const PoolHeaderG& getPoolHeader(void* t_ptr);
 
@@ -126,8 +127,6 @@ void* GlobalLinkedPool::allocate() {
         return nextFree(pool);
     }
 }
-
-
 
 void GlobalLinkedPool::deallocate(void* t_ptr) {
     NodeG* newNodeG = reinterpret_cast<NodeG*>(t_ptr);

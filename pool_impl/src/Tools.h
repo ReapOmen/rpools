@@ -2,11 +2,18 @@
 #include <unistd.h>
 #include <string>
 #include <fstream>
+#include <thread>
+#include <iostream>
+using std::cout;
+using std::endl;
 
-auto pid =  getpid();
+
+
+static auto pid =  getpid();
 
 std::string __getStatusField(const std::string& field) {
     std::ifstream f("/proc/" + std::to_string(pid) + "/status");
+
     std::string temp = "";
     while(std::getline(f, temp)) {
         if (temp.substr(0, field.size()) == field) {
@@ -24,6 +31,10 @@ std::string __getStatusField(const std::string& field) {
 
 std::string getHeapUsage() {
     return __getStatusField("VmSize");
+}
+
+std::string getStackUsage() {
+    return __getStatusField("VmStk");
 }
 
 std::string getPeakHeapUsage() {

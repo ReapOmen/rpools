@@ -1,3 +1,11 @@
 #!/bin/sh
-# gdb --args
-LD_PRELOAD="$PWD/build/libcustomnew.so" $1
+if [ -z "$2" ];
+then
+    LD_PRELOAD="$PWD/build/libcustomnew.so" $1
+else
+    if [ $2 = "-d" ]; then
+        LD_PRELOAD="$PWD/build/libcustomnewdebug.so" $1
+    else
+        echo "Wrong 2nd argument"
+    fi
+fi
