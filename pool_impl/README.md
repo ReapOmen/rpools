@@ -43,3 +43,11 @@ Usage (make sure `libcustomnew.so` is present in your build directory):
 `inject_custom_new "my_exec args1 args2"`
 
 Note: Make sure you run the script from this folder!
+
+# benchmarks/generate_alloc_file.py
+
+This is a script that will generate allocation benchmarks. By running this
+script, the `CMakeLists.txt` file will change and next time `make` is called,
+the benchmarks will be compiled.
+
+Note: make sure you run this script from the `benchmarks` folder.
