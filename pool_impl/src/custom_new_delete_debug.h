@@ -41,6 +41,7 @@ namespace {
 }
 
 inline void* custom_new_no_throw(size_t size) {
+    ac.addObject(size);
     std::unique_lock<std::mutex> ul(mut);
     // use malloc for large sizes
     if (__useOnlyMalloc || size > __threshold) {
@@ -99,6 +100,7 @@ inline void custom_delete(void* ptr) throw() {
         __mallocs.erase(bigAlloc);
         ul.unlock();
         std::free(ptr);
+        ac.removeObject(bigAlloc->second);
         ac.removeAllocation(bigAlloc->second);
         ac.removeOverhead(__mallocOverhead);
     } else {
@@ -110,6 +112,7 @@ inline void custom_delete(void* ptr) throw() {
         pool.deallocate(ptr);
         if (numOfPools > pool.getNumOfPools()) {
             ul.unlock();
+            ac.removeObject(size);
             ac.removeAllocation(__usablePoolSize);
             ac.removeOverhead(sizeof(PoolHeaderG));
         }

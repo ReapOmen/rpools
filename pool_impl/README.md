@@ -39,9 +39,10 @@ implementation. The custom new/delete library implements these operators by
 using the `linked_pool/GlobalLinkedPool` class to (de)allocate small objects and
 `malloc` to (de)allocate large objects.
 
-At the end of the execution, the custom library will output the allocations
-to a file called `alloc_snapshots_<PID>.output`. The library takes snapshots
-every 10 ms. This is only true for `libcustomnewdebug.so`
+If `-d` is supplied, at the end of the execution, the custom library will output
+the memory used by the process to a file called `memory_snapshots_<PID>.output`,
+and the number of objects in use to `object_snapshots_<PID>.output`.
+The library takes snapshots every 10 ms.
 
 Usage (make sure `libcustomnew.so` is present in your build directory):
 * `inject_custom_new "my_exec args1 args2"` - to run your executable with the
