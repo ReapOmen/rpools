@@ -99,7 +99,7 @@ void benchPool(size_t BOUND, std::ofstream& f,
    The order of (de)allocation is saved so that both implementations will
    (de)allocate in the same order.
    Allocation and deallocation is done with both new/delete and LinkedPools.
-   The results will be written to a file called `random2_time_taken.txt' and
+   The results will be written to a file called `random2_time_taken.output' and
    it will be of the form:
      Allocating <ARG> objects.
      Allocate TestObject normally: X ms
@@ -110,7 +110,7 @@ void benchPool(size_t BOUND, std::ofstream& f,
  */
 int main(int argc, char *argv[]) {
     size_t BOUND = argc > 1 ? std::stoul(argv[1]) : 10000;
-    std::ofstream f("random2_time_taken.txt");
+    std::ofstream f("random2_time_taken.output");
 
     time_t seconds;
     time(&seconds);

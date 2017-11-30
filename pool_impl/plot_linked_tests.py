@@ -86,7 +86,7 @@ if __name__ == "__main__":
                         type=int, default=100000)
     args = parser.parse_args()
     EXEC = args.test
-    FILE = EXEC.split(os.path.sep)[-1].split('_')[-1] + '_time_taken.txt'
+    FILE = EXEC.split(os.path.sep)[-1].split('_')[-1] + '_time_taken.output'
     LIMIT = args.upper_bound
     plot()
     plt.show()

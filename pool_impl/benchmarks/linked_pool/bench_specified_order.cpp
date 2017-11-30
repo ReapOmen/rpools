@@ -91,7 +91,7 @@ void benchPool(size_t BOUND, std::ofstream& f,
    Allocation and deallocation is done with both new/delete and LinkedPools.
    A command line argument can be passed to set the number of TestObjects
    that will be created and destroyed.
-   The results will be written to a file called `specified_time_taken.txt' and
+   The results will be written to a file called `specified_time_taken.output' and
    it will be of the form:
      Allocating <ARG> objects.
      Allocate TestObject normally: X ms
@@ -103,7 +103,7 @@ void benchPool(size_t BOUND, std::ofstream& f,
 int main(int argc, char *argv[]) {
     size_t BOUND = argc > 1 ? std::stoul(argv[1]) : 10000;
 
-    std::ofstream f("specified_time_taken.txt");
+    std::ofstream f("specified_time_taken.output");
 
     size_t five = BOUND * 5 / 100;
     size_t ten = BOUND / 10;
