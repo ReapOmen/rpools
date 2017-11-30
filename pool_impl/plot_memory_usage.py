@@ -9,7 +9,8 @@ def call_massif(executable, limit):
 
     full_path = './build/benchmarks/memory_usage/' + executable
     subprocess.run(['valgrind', '--tool=massif', '--stacks=yes',
-                    '--time-unit=ms', '--massif-out-file='+executable,
+                    '--time-unit=ms',
+                    '--massif-out-file='+executable+'.massif',
                     full_path, limit])
 
 
@@ -72,6 +73,7 @@ def subplot(subplot_num, title, x, y, labels, format):
 
 if __name__ == '__main__':
     import argparse
+    import os
     parser = argparse.ArgumentParser(description='Plot test data')
     parser.add_argument('--upper-bound', '-n',
                         help='The number of allocations (default: 100000)',
@@ -83,10 +85,11 @@ if __name__ == '__main__':
     args = parser.parse_args()
     limit = args.upper_bound
     format = args.memory_format
-    execs = ['bench_mem_normal',
-             'bench_mem_linked_set',
-             'bench_mem_linked_uset']
+    execs = []
+    for file in os.listdir('./build/benchmarks/memory_usage/'):
+        if file.startswith('bench'):
+            execs.append(file)
     for e in execs:
         call_massif(e, limit)
-    plot(execs, format)
+    plot(list(map(lambda x: x+'.massif', execs)), format)
     plt.show()

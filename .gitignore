@@ -1,5 +1,6 @@
 # from test_proj
 *.output
+*.massif
 build
 
 # emacs
