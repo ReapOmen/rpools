@@ -3,11 +3,6 @@
 #include <string>
 #include <fstream>
 #include <thread>
-#include <iostream>
-using std::cout;
-using std::endl;
-
-
 
 static auto pid =  getpid();
 

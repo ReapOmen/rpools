@@ -8,7 +8,7 @@
 #include <thread>
 #include <chrono>
 
-#include "CustomAlloc.h"
+#include "mallocator.h"
 
 class AllocCollector {
 public:

@@ -4,10 +4,10 @@
 #include <map>
 #include <set>
 #include <thread>
-#include <iostream>
 #include <algorithm>
 #include <mutex>
-#include "CustomAlloc.h"
+
+#include "mallocator.h"
 #include "AllocCollector.h"
 #include "linked_pool/GlobalLinkedPool.h"
 

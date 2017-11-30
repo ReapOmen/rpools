@@ -4,7 +4,8 @@
 #include <map>
 #include <set>
 #include <mutex>
-#include "CustomAlloc.h"
+
+#include "mallocator.h"
 #include "linked_pool/GlobalLinkedPool.h"
 
 namespace {
