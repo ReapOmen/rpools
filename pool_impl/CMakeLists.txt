@@ -17,8 +17,12 @@ include_directories(${PROJECT_SOURCE_DIR}/tests)
 set(CMAKE_CXX_FLAGS "-Wall -Werror -pthread -std=c++11 ${CMAKE_CXX_FLAGS}")
 
 add_subdirectory(src)
-add_library(customnewdebug SHARED ./src/custom_new_delete_debug.cpp ./src/AllocCollector.cpp)
+
+add_library(customnewdebug SHARED
+  ./src/custom_new_delete_debug.cpp
+  ./src/tools/AllocCollector.cpp)
 target_include_directories(customnewdebug PRIVATE ${LP_PATH})
+
 add_library(customnew SHARED ./src/custom_new_delete.cpp)
 target_include_directories(customnew PRIVATE ${LP_PATH})
 

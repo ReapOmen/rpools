@@ -7,8 +7,8 @@
 #include <algorithm>
 #include <mutex>
 
-#include "mallocator.h"
-#include "AllocCollector.h"
+#include "tools/mallocator.h"
+#include "tools/AllocCollector.h"
 #include "linked_pool/GlobalLinkedPool.h"
 
 namespace {
