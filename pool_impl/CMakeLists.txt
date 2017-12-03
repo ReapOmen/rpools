@@ -25,6 +25,7 @@ target_include_directories(customnewdebug PRIVATE ${LP_PATH})
 
 add_library(customnew SHARED ./src/custom_new_delete.cpp)
 target_include_directories(customnew PRIVATE ${LP_PATH})
+target_compile_options(customnew PRIVATE -O3)
 
 add_subdirectory(tests)
 add_subdirectory(benchmarks)
