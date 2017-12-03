@@ -5,6 +5,8 @@
 #include <unistd.h>
 #include <set>
 #include <cmath>
+#include <mutex>
+#include <thread>
 
 #include "tools/mallocator.h"
 
@@ -24,10 +26,14 @@ struct NodeG {
    'head' denotes a Node which points to the first free slot.
  */
 struct PoolHeaderG {
+    static const char IS_POOL[8];
+    char isPool[8] = "__pool_";
     size_t sizeOfPool;
     size_t sizeOfObjects;
     NodeG head;
 };
+
+const char PoolHeaderG:: IS_POOL[8] = "__pool_";
 
 /**
    GlobalLinkedPool is a pool allocation system which tries to minimise the amount
@@ -69,10 +75,11 @@ public:
     static const PoolHeaderG& getPoolHeader(void* t_ptr);
 
 private:
+    std::set<Pool, std::less<Pool>, mallocator<Pool>> m_freePools;
+    std::mutex m_poolLock;
     const size_t m_sizeOfObjects;
     const size_t m_poolSize;
     Pool m_freePool;
-    std::set<Pool, std::less<Pool>, mallocator<Pool>> m_freePools;
 
     /**
        Returns a pointer to the next free slot of memory from the given Pool.
@@ -87,17 +94,19 @@ const size_t GlobalLinkedPool::POOL_MASK = -1 >>
     << (size_t) std::log2(GlobalLinkedPool::PAGE_SIZE);
 
 GlobalLinkedPool::GlobalLinkedPool()
-    : m_sizeOfObjects(8),
+    : m_freePools(),
+      m_poolLock(),
+      m_sizeOfObjects(8),
       m_poolSize((PAGE_SIZE - sizeof(PoolHeaderG)) / m_sizeOfObjects),
-      m_freePool(nullptr),
-      m_freePools() {
+      m_freePool(nullptr) {
 }
 
 GlobalLinkedPool::GlobalLinkedPool(size_t t_sizeOfObjects)
-    : m_sizeOfObjects(t_sizeOfObjects < sizeof(NodeG) ? sizeof(NodeG) : t_sizeOfObjects),
+    : m_freePools(),
+      m_poolLock(),
+      m_sizeOfObjects(t_sizeOfObjects < sizeof(NodeG) ? sizeof(NodeG) : t_sizeOfObjects),
       m_poolSize((PAGE_SIZE - sizeof(PoolHeaderG)) / m_sizeOfObjects),
-      m_freePool(nullptr),
-      m_freePools() {
+      m_freePool(nullptr) {
 }
 
 void* GlobalLinkedPool::allocate() {
@@ -122,8 +131,11 @@ void* GlobalLinkedPool::allocate() {
         }
         NodeG* node = reinterpret_cast<NodeG*>(first);
         *node = NodeG();
-        m_freePools.insert(pool);
-        m_freePool = pool;
+        {
+            std::lock_guard<std::mutex> lock(m_poolLock);
+            m_freePools.insert(pool);
+            m_freePool = pool;
+        }
         return nextFree(pool);
     }
 }
@@ -135,6 +147,7 @@ void GlobalLinkedPool::deallocate(void* t_ptr) {
     PoolHeaderG* pool = reinterpret_cast<PoolHeaderG*>(
         reinterpret_cast<size_t>(t_ptr) & POOL_MASK
     );
+    std::lock_guard<std::mutex> lock(m_poolLock);
     // update nodes to point to the newly create Node
     NodeG* head = &pool->head;
     if (head->next == nullptr) {
@@ -160,6 +173,7 @@ void GlobalLinkedPool::deallocate(void* t_ptr) {
 void* GlobalLinkedPool::nextFree(Pool pool) {
     PoolHeaderG* header = reinterpret_cast<PoolHeaderG*>(pool);
     NodeG* head = &(header->head);
+    std::lock_guard<std::mutex> lock(m_poolLock);
     if (head->next) {
         void* toReturn = head->next;
         head->next = head->next->next;

@@ -1,9 +1,8 @@
 #ifndef __CUSTOM_NEW_DELETE_H__
 #define __CUSTOM_NEW_DELETE_H__
 
-#include <map>
-#include <set>
-#include <mutex>
+#include <cmath>
+#include <vector>
 
 #include "tools/mallocator.h"
 #include "linked_pool/GlobalLinkedPool.h"
@@ -15,42 +14,43 @@ namespace {
     // shorthand for allocator that can create pairs of size
     // and LinkedPools
     using __Alloc = mallocator<std::pair<const size_t,
-                                         efficient_pools::GlobalLinkedPool>>;
+                                         GlobalLinkedPool>>;
 
-    const size_t __threshold = (GlobalLinkedPool::PAGE_SIZE -
-                                sizeof(PoolHeaderG)) / 4;
+    const size_t __threshold = 128; // malloc performs equally well
+                                    // on objects of size > 128
+    const size_t __mod = sizeof(void*) - 1;
+    const size_t __logOfVoid = std::log2(sizeof(void*));
 
-    std::map<size_t, efficient_pools::GlobalLinkedPool,
-             std::less<size_t>, __Alloc> __allocators;
-    // the pointers that have been allocated with malloc and
-    // their respective sizes
-    std::set<void*, std::less<void*>, mallocator<void*>> __mallocs;
-    std::mutex mut;
+    std::vector<GlobalLinkedPool*,
+                mallocator<std::unique_ptr<GlobalLinkedPool>>>
+        __allocators(__threshold >> __logOfVoid);
+}
+
+inline size_t getAllocatorsIndex(size_t size) {
+    return (size >> __logOfVoid) - 1;
 }
 
 inline void* custom_new_no_throw(size_t size) {
-    std::unique_lock<std::mutex> ul(mut);
     // use malloc for large sizes
     if (size > __threshold) {
-        void* toRet = std::malloc(size == 0 ? 1 : size);
-        __mallocs.insert(toRet);
-        return toRet;
+        return std::malloc(size);
     } else {
-        // sizes that are smaller than 8 are grouped together in pools
-        // of size 8
-        size_t newSize = size < sizeof(NodeG) ? sizeof(NodeG) : size;
-        // look for a LinkedPool that can hold <newSize> objects
-        auto poolAlloc = __allocators.find(newSize);
-        if (poolAlloc != __allocators.end()) {
-            return poolAlloc->second.allocate();
+        size_t remainder = size & __mod; // size % sizeof(void*)
+        // get the next multiple of size(void*)
+        size = remainder == 0 ? size : (size + __mod) & ~__mod;
+        auto poolAlloc = __allocators[getAllocatorsIndex(size)];
+        if (poolAlloc) {
+            // our pool was already created, just use it
+            return poolAlloc->allocate();
         } else {
-            // a LinkedPool that can allocate objects of size
-            // <newSize> was not found, so it is created and added
-            // to the map
-            auto newPool = GlobalLinkedPool(newSize);
-            void* toRet = newPool.allocate();
-            __allocators.insert(std::make_pair(newSize, std::move(newPool)));
-            return toRet;
+            // create the pool which can hold objects of size
+            // <size>
+            auto newPool = static_cast<GlobalLinkedPool*>(
+                malloc(sizeof(GlobalLinkedPool))
+            );
+            new (newPool) GlobalLinkedPool(size);
+            __allocators[getAllocatorsIndex(size)] = newPool;
+            return newPool->allocate();
         }
     }
 }
@@ -63,18 +63,26 @@ inline void* custom_new(size_t size) {
     return toRet;
 }
 
+inline bool is_equal(const char s[8], const char s2[8]) {
+    for (short i = 0; i < 7; ++i) {
+        if (s[i] != s2[i]) {
+            return false;
+        }
+    }
+    return true;
+}
+
 inline void custom_delete(void* ptr) throw() {
-    std::unique_lock<std::mutex> ul(mut);
+    const PoolHeaderG& ph = GlobalLinkedPool::getPoolHeader(ptr);
     // find out if the pointer was allocated with malloc
-    auto bigAlloc = __mallocs.find(ptr);
-    if (bigAlloc != __mallocs.end()) {
-        __mallocs.erase(bigAlloc);
+    // or within a pool
+    if (!is_equal(ph.isPool, PoolHeaderG::IS_POOL)) {
         std::free(ptr);
     } else {
-        // mask pointer to find out the pool header and the size of the objects
-        // it can hold
-        size_t size = GlobalLinkedPool::getPoolHeader(ptr).sizeOfObjects;
-        __allocators[size].deallocate(ptr);
+        // convert the size to an index of the allocators vector
+        // by dividing it to sizeof(void*)
+        __allocators[getAllocatorsIndex(ph.sizeOfObjects)]
+            ->deallocate(ptr);
     }
 }
 
