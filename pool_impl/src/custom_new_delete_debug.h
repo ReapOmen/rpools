@@ -26,7 +26,7 @@ namespace {
     const size_t __mod = sizeof(void*) - 1;
     const size_t __logOfVoid = std::log2(sizeof(void*));
 
-    std::vector<GlobalLinkedPool*,
+    std::vector<std::unique_ptr<GlobalLinkedPool>,
                 mallocator<std::unique_ptr<GlobalLinkedPool>>>
         __allocators(__threshold >> __logOfVoid);
     // the pointers that have been allocated with malloc and
@@ -54,7 +54,7 @@ inline void* custom_new_no_throw(size_t size) {
         size_t remainder = size & __mod; // size % sizeof(void*)
         // get the next multiple of size(void*)
         size = remainder == 0 ? size : (size + __mod) & ~__mod;
-        auto poolAlloc = __allocators[getAllocatorsIndex(size)];
+        auto poolAlloc = __allocators[getAllocatorsIndex(size)].get();
         if (poolAlloc) {
             size_t poolSize = poolAlloc->getNumOfPools();
             // our pool was already created, just use it
@@ -71,7 +71,8 @@ inline void* custom_new_no_throw(size_t size) {
                 malloc(sizeof(GlobalLinkedPool))
             );
             new (newPool) GlobalLinkedPool(size);
-            __allocators[getAllocatorsIndex(size)] = newPool;
+            __allocators[getAllocatorsIndex(size)] =
+                std::unique_ptr<GlobalLinkedPool>(newPool);
             ac.addAllocation(__usablePoolSize);
             ac.addOverhead(sizeof(PoolHeaderG));
             return newPool->allocate();
@@ -105,7 +106,7 @@ inline void custom_delete(void* ptr) throw() {
     else {
         // convert the size to an index of the allocators vector
         // by dividing it to sizeof(void*)
-        auto pool =__allocators[getAllocatorsIndex(ph.sizeOfObjects)];
+        auto pool =__allocators[getAllocatorsIndex(ph.sizeOfObjects)].get();
         size_t numOfPools = pool->getNumOfPools();
         pool->deallocate(ptr);
         if (numOfPools > pool->getNumOfPools()) {
