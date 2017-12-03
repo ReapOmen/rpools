@@ -14,15 +14,11 @@ namespace {
     using efficient_pools::GlobalLinkedPool;
     using efficient_pools::PoolHeaderG;
     using efficient_pools::NodeG;
-    // shorthand for allocator that can create pairs of size
-    // and LinkedPools
-    using __Alloc = mallocator<std::pair<const size_t,
-                                         efficient_pools::GlobalLinkedPool>>;
 
     const size_t __threshold = 128;
 
     const size_t __usablePoolSize = GlobalLinkedPool::PAGE_SIZE -
-                                sizeof(PoolHeaderG);
+                                    sizeof(PoolHeaderG);
 
     const size_t __mallocOverhead = 8;
     const bool __useOnlyMalloc = false;

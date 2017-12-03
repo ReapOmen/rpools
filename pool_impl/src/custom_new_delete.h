@@ -11,10 +11,6 @@ namespace {
     using efficient_pools::GlobalLinkedPool;
     using efficient_pools::PoolHeaderG;
     using efficient_pools::NodeG;
-    // shorthand for allocator that can create pairs of size
-    // and LinkedPools
-    using __Alloc = mallocator<std::pair<const size_t,
-                                         GlobalLinkedPool>>;
 
     const size_t __threshold = 128; // malloc performs equally well
                                     // on objects of size > 128
