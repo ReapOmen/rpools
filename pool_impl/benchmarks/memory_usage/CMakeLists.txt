@@ -1,0 +1,3 @@
+add_executable(bench_mem_normal bench_normal.cpp)
+add_executable(bench_mem_linked_uset bench_linked_uset.cpp)
+add_executable(bench_mem_linked_set bench_linked_set.cpp)

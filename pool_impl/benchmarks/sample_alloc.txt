@@ -1,0 +1,4 @@
+    cout << "Allocating {name}s\n";
+    for (int i = 0; i < {allocs}; ++i) {{
+        new _{name}();
+    }}

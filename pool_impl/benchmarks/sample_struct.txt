@@ -1,0 +1,3 @@
+struct _{name} {{
+    float x[{size}];
+{op_new}}};

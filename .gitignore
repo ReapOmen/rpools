@@ -1,6 +1,7 @@
-# from test_proj
-*.txt
+*.output
+*.massif
 build
+alloc_benchmark_*
 
 # emacs
 \#*

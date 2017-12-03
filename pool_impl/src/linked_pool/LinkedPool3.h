@@ -102,7 +102,7 @@ void* LinkedPool3<T>::allocate() {
         *header = PoolHeader();
         header->head.next = reinterpret_cast<Node*>(header + 1);
         T* first = reinterpret_cast<T*>(header + 1);
-        for (int i = 0; i < m_poolSize - 1; ++i) {
+        for (size_t i = 0; i < m_poolSize - 1; ++i) {
             Node* node = reinterpret_cast<Node*>(first);
             *node = Node();
             node->next = reinterpret_cast<Node*>(++first);

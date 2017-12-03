@@ -1,0 +1,14 @@
+#include <iostream>
+
+#include "tools/proc_utils.h"
+#include "linked_pool/LinkedPool3.h"
+using efficient_pools3::LinkedPool3;
+using std::cout;
+using std::endl;
+
+{structs}
+
+int main() {{
+{allocs}
+    cout << getPeakHeapUsage() << endl;
+}}

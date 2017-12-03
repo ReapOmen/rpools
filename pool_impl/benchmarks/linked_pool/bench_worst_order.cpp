@@ -20,14 +20,14 @@ void benchPool(size_t BOUND, std::ofstream& f, size_t POOL_SIZE,
     vector<TestObject*> objs2;
     objs2.reserve(BOUND);
     std::clock_t start = std::clock();
-    for (int i = 0; i < BOUND; ++i) {
+    for (size_t i = 0; i < BOUND; ++i) {
         objs2.push_back((TestObject*) lp.allocate());
     }
     printToFile(f, "TestObject", start, false,  name);
 
     start = std::clock();
-    for (int i = 0; i < POOL_SIZE; ++i) {
-        for (int offset = 0; offset < MULT; ++offset) {
+    for (size_t i = 0; i < POOL_SIZE; ++i) {
+        for (size_t offset = 0; offset < MULT; ++offset) {
             lp.deallocate(objs2[i + offset * POOL_SIZE]);
         }
     }
@@ -40,7 +40,7 @@ void benchPool(size_t BOUND, std::ofstream& f, size_t POOL_SIZE,
    Allocation and deallocation is done with both new/delete and LinkedPools.
    A command line argument can be passed to set the number of TestObjects
    that will be created and destroyed.
-   The results will be written to a file called `worst_time_taken.txt' and
+   The results will be written to a file called `worst_time_taken.output' and
    it will be of the form:
      Allocating <ARG> * 170 objects.
      Allocate TestObject normally: X ms
@@ -55,20 +55,20 @@ int main(int argc, char* argv[]) {
     size_t POOL_SIZE = LinkedPool<TestObject>().getPoolSize();
     size_t BOUND = POOL_SIZE * MULT;
 
-    std::ofstream f("worst_time_taken.txt");
+    std::ofstream f("worst_time_taken.output");
     f << "Allocating " << BOUND << " objects." << std::endl;
     {
         vector<TestObject*> objs;
         objs.reserve(BOUND);
         std::clock_t start = std::clock();
-        for (int i = 0; i < BOUND; ++i) {
+        for (size_t i = 0; i < BOUND; ++i) {
             objs.push_back(new TestObject());
         }
         printToFile(f, "TestObject", start, false, "Regular");
 
         start = std::clock();
-        for (int i = 0; i < POOL_SIZE; ++i) {
-            for (int offset = 0; offset < MULT; ++offset) {
+        for (size_t i = 0; i < POOL_SIZE; ++i) {
+            for (size_t offset = 0; offset < MULT; ++offset) {
                 delete (objs[i + offset * POOL_SIZE]);
             }
         }

@@ -1,10 +1,21 @@
+dist: trusty
+
+addons:
+    apt:
+        sources:
+            - llvm-toolchain-precise
+            - ubuntu-toolchain-r-test
+        packages:
+            - g++-5
+            - gcc-5
+
 language: cpp
 
 compiler:
   - gcc
-  - clang
 
 install:
+  - if [ "$CXX" = "g++" ]; then export CXX="g++-5" CC="gcc-5"; fi
   - cd pool_impl && mkdir build && cd build && cmake .. && make
 
 script:

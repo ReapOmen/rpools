@@ -20,9 +20,9 @@ using std::pair;
 using std::make_pair;
 using std::vector;
 
-float allocateN(const pair<int, int>& range, vector<TestObject*>& vec) {
+float allocateN(const pair<size_t, size_t>& range, vector<TestObject*>& vec) {
     std::clock_t start = std::clock();
-    for (int i = range.first; i < range.second; ++i) {
+    for (size_t i = range.first; i < range.second; ++i) {
         vec[i] = new TestObject();
     }
     return (std::clock() - start) / (double)(CLOCKS_PER_SEC / 1000);
@@ -35,10 +35,10 @@ float deallocateN(size_t index, vector<TestObject*>& vec) {
 }
 
 template<template <typename> class T>
-float allocateN(const pair<int, int>& range, vector<TestObject*>& vec,
+float allocateN(const pair<size_t, size_t>& range, vector<TestObject*>& vec,
                T<TestObject>& lp) {
     std::clock_t start = std::clock();
-    for (int i = range.first; i < range.second; ++i) {
+    for (size_t i = range.first; i < range.second; ++i) {
         vec[i] = (TestObject*) lp.allocate();
     }
     return (std::clock() - start) / (double)(CLOCKS_PER_SEC / 1000);
@@ -61,7 +61,7 @@ void shuffle(vector<size_t>& vec) {
 void pushAndPop(vector<pair<size_t, bool>>& vec,
                 size_t deallocNum,
                 vector<size_t>& allocated) {
-    for (int i = 0; i < deallocNum; ++i) {
+    for (size_t i = 0; i < deallocNum; ++i) {
         vec.push_back(make_pair(allocated.back(), true));
         allocated.pop_back();
     }
@@ -99,7 +99,7 @@ void benchPool(size_t BOUND, std::ofstream& f,
    The order of (de)allocation is saved so that both implementations will
    (de)allocate in the same order.
    Allocation and deallocation is done with both new/delete and LinkedPools.
-   The results will be written to a file called `random2_time_taken.txt' and
+   The results will be written to a file called `random2_time_taken.output' and
    it will be of the form:
      Allocating <ARG> objects.
      Allocate TestObject normally: X ms
@@ -110,7 +110,7 @@ void benchPool(size_t BOUND, std::ofstream& f,
  */
 int main(int argc, char *argv[]) {
     size_t BOUND = argc > 1 ? std::stoul(argv[1]) : 10000;
-    std::ofstream f("random2_time_taken.txt");
+    std::ofstream f("random2_time_taken.output");
 
     time_t seconds;
     time(&seconds);

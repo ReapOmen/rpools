@@ -34,7 +34,7 @@ void test_allocation_1() {
     size_t size = lp.getPoolSize();
     vector<T*> objs(size);
     objs[0] = new (lp.allocate()) T();
-    for (int i = 1; i < size; ++i) {
+    for (size_t i = 1; i < size; ++i) {
         objs[i] = new (lp.allocate()) T();
         // all objects are part of the same pool
         // so the 3rd object will be 2 slots away from
@@ -65,7 +65,7 @@ void test_allocation_2() {
     // allocated in a second pool
     size_t size = lp.getPoolSize() + 2;
     vector<T*> objs(size);
-    for (int i = 0; i < size; ++i) {
+    for (size_t i = 0; i < size; ++i) {
         objs[i] = new (lp.allocate()) T();
     }
     // the (P + 1) object is allocated in another pool
@@ -101,7 +101,7 @@ void test_interleaving() {
     // we will allocate 5 objects
     size_t size = 5;
     vector<T*> objs(size);
-    for (int i = 0; i < size; ++i) {
+    for (size_t i = 0; i < size; ++i) {
         objs[i] = new (lp.allocate()) T();
     }
     void* firstDeallocated = reinterpret_cast<void*>(objs[1]);
@@ -122,7 +122,7 @@ void test_interleaving() {
     objs.push_back(new (lp.allocate()) T());
     REQUIRE(objs[5] == objs[0] + 5);
 
-    for (int i = 0; i < objs.size(); ++i) {
+    for (size_t i = 0; i < objs.size(); ++i) {
         lp.deallocate(objs[i]);
     }
 }
@@ -141,7 +141,7 @@ void test_pools_fill_up() {
     LinkedPool<T> lp;
     size_t size = lp.getPoolSize() * 2;
     vector<T*> objs(size);
-    for (int i = 0; i < size; ++i) {
+    for (size_t i = 0; i < size; ++i) {
         objs[i] = new (lp.allocate()) T();
     }
     T* firstDealloc = objs[size - 1];
@@ -157,7 +157,7 @@ void test_pools_fill_up() {
     // If the first one was placed in pool 1 then this will be placed in pool 2.
     REQUIRE(((objs[size / 2 - 1] == firstDealloc)
              || (objs[size / 2 - 1] == secondDealloc)));
-    for (int i = 0; i < objs.size(); ++i) {
+    for (size_t i = 0; i < objs.size(); ++i) {
         lp.deallocate(objs[i]);
     }
 }
