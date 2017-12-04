@@ -12,10 +12,12 @@ TEST_CASE("Allocations between 1 and 128 bytes use GlobalLinkedPool",
     for (size_t i = 0; i <= 120; i += 8) {
         void* lastPtr = nullptr;
         // allocations are done in pools of multiples of 8
-        // 1-8 -> 8
+        // 0-8 -> 8
         // 9-16 -> 16
         // etc.
-        for (size_t j = i + 1; j <= i + 8; ++j) {
+        // note that 0 will also be placed in a pool of size 8
+        // because its a special case
+        for (size_t j = i == 0 ? i : i + 1; j <= i + 8; ++j) {
             void* ptr = custom_new_no_throw(j);
             if (!lastPtr) {
                 lastPtr = ptr;
@@ -43,22 +45,22 @@ TEST_CASE("Allocations over 128 bytes use malloc",
 
 TEST_CASE("Pointers to objects of size < 129 are deallocated using GlobalLinkedpool",
           "[custom_new_delete]") {
-    std::vector<void*> allocs(128);
-    for (size_t i = 1; i <= 128; ++i) {
-        allocs[i-1] = custom_new_no_throw(i);
+    std::vector<void*> allocs(129);
+    for (size_t i = 0; i <= 128; ++i) {
+        allocs[i] = custom_new_no_throw(i);
     }
-    for (size_t i = allocs.size() - 1; i != 0; --i) {
+    for (size_t i = allocs.size(); i != 0; --i) {
         // we do not want to deal with dangling references
         // because our pool header will get destroyed once we
         // deallocate the last object of the pool
-        if ((i - 1) % 8 == 0) {
-            custom_delete(allocs[i]);
+        if ((i - 1) % 8 == 0 && (i - 1) != 0) {
+            custom_delete(allocs[i-1]);
         } else {
             size_t oldSize =
-                GlobalLinkedPool::getPoolHeader(allocs[i]).sizeOfPool;
-            custom_delete(allocs[i]);
+                GlobalLinkedPool::getPoolHeader(allocs[i-1]).sizeOfPool;
+            custom_delete(allocs[i-1]);
             REQUIRE(oldSize - 1 ==
-                    GlobalLinkedPool::getPoolHeader(allocs[i]).sizeOfPool);
+                    GlobalLinkedPool::getPoolHeader(allocs[i-1]).sizeOfPool);
         }
     }
 }

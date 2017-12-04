@@ -23,6 +23,9 @@ namespace {
         __allocators(__threshold >> __logOfVoid);
 
     inline size_t getAllocatorsIndex(size_t size) {
+        if (size == 0) {
+            return 0;
+        }
         return (size >> __logOfVoid) - 1;
     }
 }
