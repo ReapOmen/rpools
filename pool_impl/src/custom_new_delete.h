@@ -3,6 +3,7 @@
 
 #include <cmath>
 #include <vector>
+#include <cstring>
 
 #include "tools/mallocator.h"
 #include "linked_pool/GlobalLinkedPool.h"
@@ -20,10 +21,10 @@ namespace {
     std::vector<std::unique_ptr<GlobalLinkedPool>,
                 mallocator<std::unique_ptr<GlobalLinkedPool>>>
         __allocators(__threshold >> __logOfVoid);
-}
 
-inline size_t getAllocatorsIndex(size_t size) {
-    return (size >> __logOfVoid) - 1;
+    inline size_t getAllocatorsIndex(size_t size) {
+        return (size >> __logOfVoid) - 1;
+    }
 }
 
 inline void* custom_new_no_throw(size_t size) {
@@ -60,20 +61,11 @@ inline void* custom_new(size_t size) {
     return toRet;
 }
 
-inline bool is_equal(const char s[8], const char s2[8]) {
-    for (short i = 0; i < 7; ++i) {
-        if (s[i] != s2[i]) {
-            return false;
-        }
-    }
-    return true;
-}
-
 inline void custom_delete(void* ptr) throw() {
     const PoolHeaderG& ph = GlobalLinkedPool::getPoolHeader(ptr);
     // find out if the pointer was allocated with malloc
     // or within a pool
-    if (!is_equal(ph.isPool, PoolHeaderG::IS_POOL)) {
+    if (strcmp(ph.isPool, PoolHeaderG::IS_POOL) != 0) {
         std::free(ptr);
     } else {
         // convert the size to an index of the allocators vector
