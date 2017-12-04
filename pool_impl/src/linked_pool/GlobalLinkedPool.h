@@ -31,6 +31,12 @@ struct PoolHeaderG {
     size_t sizeOfPool;
     size_t sizeOfObjects;
     NodeG head;
+
+    bool operator ==(const PoolHeaderG& other) const {
+        return sizeOfPool == other.sizeOfPool &&
+            sizeOfObjects == other.sizeOfObjects &&
+            head.next == other.head.next;
+    }
 };
 
 const char PoolHeaderG:: IS_POOL[8] = "__pool_";
