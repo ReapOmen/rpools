@@ -64,7 +64,8 @@ inline void custom_delete(void* ptr) throw() {
     const PoolHeaderG& ph = GlobalLinkedPool::getPoolHeader(ptr);
     // find out if the pointer was allocated with malloc
     // or within a pool
-    if (strcmp(ph.isPool, PoolHeaderG::IS_POOL) != 0) {
+    if (strcmp(ph.isPool, PoolHeaderG::IS_POOL) != 0 ||
+        ph.sizeOfObjects > __threshold) {
         std::free(ptr);
     } else {
         // convert the size to an index of the allocators vector
