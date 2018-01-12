@@ -170,21 +170,17 @@ template<typename T>
 void* LinkedPool<T>::nextFree(Pool pool) {
     PoolHeader* header = reinterpret_cast<PoolHeader*>(pool);
     Node& head = header->head;
+    void* toReturn = head.next;
     if (head.next) {
-        void* toReturn = head.next;
         head.next = head.next->next;
         if (++(header->sizeOfPool) == m_poolSize) {
             m_freePools.erase(pool);
         }
-#ifdef __x86_64
-        light_unlock(&m_poolLock);
-#endif
-        return toReturn;
     }
 #ifdef __x86_64
     light_unlock(&m_poolLock);
 #endif
-    return head.next;
+    return toReturn;
 }
 
 }
