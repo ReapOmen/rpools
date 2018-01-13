@@ -5,11 +5,11 @@ target_link_libraries(test_linked_pool Catch)
 add_test(NAME TestLinkedPool COMMAND test_linked_pool)
 
 add_executable(test_global_linked_pool test_global_linked_pool.cpp)
-target_link_libraries(test_global_linked_pool Catch)
+target_link_libraries(test_global_linked_pool Catch customnew)
 
 add_test(NAME TestGlobalLinkedPool COMMAND test_global_linked_pool)
 
 add_executable(test_custom_new_delete test_custom_new_delete.cpp)
-target_link_libraries(test_custom_new_delete Catch)
+target_link_libraries(test_custom_new_delete PRIVATE Catch customnew)
 
 add_test(NAME TestCustomNewDelete COMMAND test_custom_new_delete)

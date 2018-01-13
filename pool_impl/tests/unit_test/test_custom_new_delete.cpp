@@ -38,8 +38,11 @@ TEST_CASE("Allocations over 128 bytes use malloc",
     // the uperbound can be anything
     for (size_t i = 129; i < 1000; ++i) {
         void* ptr = custom_new_no_throw(i);
-        REQUIRE(strcmp(GlobalLinkedPool::getPoolHeader(ptr).isPool,
-                       PoolHeaderG::IS_POOL) != 0);
+        auto& ph = GlobalLinkedPool::getPoolHeader(ptr);
+        bool output1 = strcmp(ph.isPool, PoolHeaderG::IS_POOL) != 0;
+        bool output2 = ph.sizeOfObjects > 128;
+        bool requiredVal = output1 || output2;
+        REQUIRE(requiredVal == true);
     }
 }
 

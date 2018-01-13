@@ -3,9 +3,9 @@
 
 #include <cstdlib>
 #include <unistd.h>
-#include <set>
 #include <cmath>
 
+#include "avltree/avl_utils.h"
 #include "tools/mallocator.h"
 
 #ifdef __x86_64
@@ -89,12 +89,12 @@ public:
     void deallocate(void* t_ptr);
 
     size_t getPoolSize() const { return m_poolSize; }
-    size_t getNumOfPools() const { return m_freePools.size(); }
+    size_t getNumOfPools() const { return m_numOfPools; }
 
     static const PoolHeaderG& getPoolHeader(void* t_ptr);
 
 private:
-    std::set<Pool, std::less<Pool>, mallocator<Pool>> m_freePools;
+    avl_tree m_freePools;
 #ifdef __x86_64
     light_lock_t m_poolLock;
 #else
@@ -102,6 +102,7 @@ private:
 #endif
     const size_t m_sizeOfObjects;
     const size_t m_poolSize;
+    size_t m_numOfPools;
     Pool m_freePool;
 
     void constructPoolHeader(char* t_ptr);
@@ -127,7 +128,9 @@ GlobalLinkedPool::GlobalLinkedPool()
       ),
       m_sizeOfObjects(8),
       m_poolSize((PAGE_SIZE - sizeof(PoolHeaderG)) / m_sizeOfObjects),
+      m_numOfPools(0),
       m_freePool(nullptr) {
+    avl_init(&m_freePools, NULL);
 }
 
 GlobalLinkedPool::GlobalLinkedPool(size_t t_sizeOfObjects)
@@ -139,7 +142,9 @@ GlobalLinkedPool::GlobalLinkedPool(size_t t_sizeOfObjects)
       ),
       m_sizeOfObjects(t_sizeOfObjects < sizeof(NodeG) ? sizeof(NodeG) : t_sizeOfObjects),
       m_poolSize((PAGE_SIZE - sizeof(PoolHeaderG)) / m_sizeOfObjects),
+      m_numOfPools(0),
       m_freePool(nullptr) {
+    avl_init(&m_freePools, NULL);
 }
 
 void* GlobalLinkedPool::allocate() {
@@ -150,15 +155,18 @@ void* GlobalLinkedPool::allocate() {
 #endif
     if (m_freePool) {
         return nextFree(m_freePool);
-    } else if (m_freePools.size() > 0) {
-        return nextFree(*m_freePools.begin());
     } else {
-        // create a new pool because there are no free pool slots left
-        Pool pool = aligned_alloc(PAGE_SIZE, PAGE_SIZE);
-        constructPoolHeader(reinterpret_cast<char*>(pool));
-        m_freePools.insert(pool);
-        m_freePool = pool;
-        return nextFree(pool);
+        Pool pool = avl::first(&m_freePools);
+        if (pool) {
+            return nextFree(pool);
+        } else {
+            // create a new pool because there are no free pool slots left
+            Pool pool = aligned_alloc(PAGE_SIZE, PAGE_SIZE);
+            constructPoolHeader(reinterpret_cast<char*>(pool));
+            avl::insert(&m_freePools, pool);
+            m_freePool = pool;
+            return nextFree(pool);
+        }
     }
 }
 
@@ -175,22 +183,18 @@ void GlobalLinkedPool::deallocate(void* t_ptr) {
 #endif
 
     if (pool->sizeOfPool == 1) {
-        m_freePools.erase(pool);
+        avl::remove(&m_freePools, pool);
         free(pool);
-        m_freePool = m_freePools.size() == 0 ? nullptr : *m_freePools.begin();
+        m_freePool = avl::first(&m_freePools);
     } else {
         NodeG* newNodeG = new (t_ptr) NodeG();
         // update nodes to point to the newly create Node
         NodeG& head = pool->head;
-        if (head.next == nullptr) {
-            head.next = newNodeG;
-        } else {
-            newNodeG->next = head.next;
-            head.next = newNodeG;
-        }
+        newNodeG->next = head.next;
+        head.next = newNodeG;
         m_freePool = pool;
-        if (--pool->sizeOfPool == m_poolSize - 1) {
-            m_freePools.insert(pool);
+        if (--(pool->sizeOfPool) == m_poolSize - 1) {
+            avl::insert(&m_freePools, pool);
         }
     }
 #ifdef __x86_64
@@ -218,22 +222,18 @@ void GlobalLinkedPool::constructPoolHeader(char* t_ptr) {
 void* GlobalLinkedPool::nextFree(Pool pool) {
     PoolHeaderG* header = reinterpret_cast<PoolHeaderG*>(pool);
     NodeG& head = header->head;
-    if (head.next) {
-        void* toReturn = head.next;
+    void* toReturn = head.next;
+    if (toReturn) {
         head.next = head.next->next;
         if (++(header->sizeOfPool) == m_poolSize) {
-            m_freePools.erase(pool);
-            m_freePool = m_freePools.size() == 0 ? nullptr : *m_freePools.begin();
+            avl::remove(&m_freePools, pool);
+            m_freePool = avl::first(&m_freePools);
         }
-#ifdef __x86_64
-        light_unlock(&m_poolLock);
-#endif
-        return toReturn;
     }
 #ifdef __x86_64
     light_unlock(&m_poolLock);
 #endif
-    return head.next;
+    return toReturn;
 }
 
 const PoolHeaderG& GlobalLinkedPool::getPoolHeader(void* t_ptr) {
