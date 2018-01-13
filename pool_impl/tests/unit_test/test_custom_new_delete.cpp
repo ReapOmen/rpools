@@ -52,18 +52,20 @@ TEST_CASE("Pointers to objects of size < 129 are deallocated using GlobalLinkedp
     for (size_t i = 0; i <= 128; ++i) {
         allocs[i] = custom_new_no_throw(i);
     }
-    for (size_t i = allocs.size(); i != 0; --i) {
+    size_t index = allocs.size() - 1;
+    for (size_t i = allocs.size(); i > 0; --i) {
         // we do not want to deal with dangling references
         // because our pool header will get destroyed once we
         // deallocate the last object of the pool
-        if ((i - 1) % 8 == 0 && (i - 1) != 0) {
+        if ((i - 1) % 8 == 0) {
             custom_delete(allocs[i-1]);
+            index = i - 1;
         } else {
             size_t oldSize =
                 GlobalLinkedPool::getPoolHeader(allocs[i-1]).sizeOfPool;
             custom_delete(allocs[i-1]);
             REQUIRE(oldSize - 1 ==
-                    GlobalLinkedPool::getPoolHeader(allocs[i-1]).sizeOfPool);
+                    GlobalLinkedPool::getPoolHeader(allocs[index]).sizeOfPool);
         }
     }
 }
