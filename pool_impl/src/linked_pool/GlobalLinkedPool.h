@@ -5,10 +5,15 @@
 #include <unistd.h>
 #include <set>
 #include <cmath>
-#include <mutex>
-#include <thread>
 
 #include "tools/mallocator.h"
+
+#ifdef __x86_64
+#include "light_lock.h"
+#else
+#include <mutex>
+#include <thread>
+#endif
 
 namespace efficient_pools {
 
@@ -16,6 +21,8 @@ using Pool = void*;
 
 struct NodeG {
     NodeG* next;
+
+    NodeG(NodeG* t_next = nullptr) : next(t_next) {}
 };
 
 /**
@@ -27,10 +34,16 @@ struct NodeG {
  */
 struct PoolHeaderG {
     static const char IS_POOL[8];
-    char isPool[8] = "__pool_";
+    char isPool[8];
     size_t sizeOfPool;
     size_t sizeOfObjects;
     NodeG head;
+
+    PoolHeaderG(size_t t_sizeOfObjects, NodeG* next)
+        : isPool("__pool_"), sizeOfPool(0),
+          sizeOfObjects(t_sizeOfObjects), head(next) {
+
+    }
 
     bool operator ==(const PoolHeaderG& other) const {
         return sizeOfPool == other.sizeOfPool &&
@@ -82,10 +95,16 @@ public:
 
 private:
     std::set<Pool, std::less<Pool>, mallocator<Pool>> m_freePools;
+#ifdef __x86_64
+    light_lock_t m_poolLock;
+#else
     std::mutex m_poolLock;
+#endif
     const size_t m_sizeOfObjects;
     const size_t m_poolSize;
     Pool m_freePool;
+
+    void constructPoolHeader(char* t_ptr);
 
     /**
        Returns a pointer to the next free slot of memory from the given Pool.
@@ -101,7 +120,11 @@ const size_t GlobalLinkedPool::POOL_MASK = -1 >>
 
 GlobalLinkedPool::GlobalLinkedPool()
     : m_freePools(),
-      m_poolLock(),
+      m_poolLock(
+#ifdef __x86_64
+          LIGHT_LOCK_INIT
+#endif
+      ),
       m_sizeOfObjects(8),
       m_poolSize((PAGE_SIZE - sizeof(PoolHeaderG)) / m_sizeOfObjects),
       m_freePool(nullptr) {
@@ -109,13 +132,22 @@ GlobalLinkedPool::GlobalLinkedPool()
 
 GlobalLinkedPool::GlobalLinkedPool(size_t t_sizeOfObjects)
     : m_freePools(),
-      m_poolLock(),
+      m_poolLock(
+#ifdef __x86_64
+          LIGHT_LOCK_INIT
+#endif
+      ),
       m_sizeOfObjects(t_sizeOfObjects < sizeof(NodeG) ? sizeof(NodeG) : t_sizeOfObjects),
       m_poolSize((PAGE_SIZE - sizeof(PoolHeaderG)) / m_sizeOfObjects),
       m_freePool(nullptr) {
 }
 
 void* GlobalLinkedPool::allocate() {
+#ifdef __x86_64
+    light_lock(&m_poolLock);
+#else
+    std::lock_guard<std::mutex> lock(m_poolLock);
+#endif
     if (m_freePool) {
         return nextFree(m_freePool);
     } else if (m_freePools.size() > 0) {
@@ -123,73 +155,85 @@ void* GlobalLinkedPool::allocate() {
     } else {
         // create a new pool because there are no free pool slots left
         Pool pool = aligned_alloc(PAGE_SIZE, PAGE_SIZE);
-        // init all the metadata
-        PoolHeaderG* header = reinterpret_cast<PoolHeaderG*> (pool);
-        *header = PoolHeaderG();
-        header->sizeOfObjects = m_sizeOfObjects;
-        header->head.next = reinterpret_cast<NodeG*>(header + 1);
-        char* first = reinterpret_cast<char*>(header + 1);
-        for (size_t i = 0; i < m_poolSize - 1; ++i) {
-            NodeG* node = reinterpret_cast<NodeG*>(first);
-            *node = NodeG();
-            first += m_sizeOfObjects;
-            node->next = reinterpret_cast<NodeG*>(first);
-        }
-        NodeG* node = reinterpret_cast<NodeG*>(first);
-        *node = NodeG();
-        {
-            std::lock_guard<std::mutex> lock(m_poolLock);
-            m_freePools.insert(pool);
-            m_freePool = pool;
-        }
+        constructPoolHeader(reinterpret_cast<char*>(pool));
+        m_freePools.insert(pool);
+        m_freePool = pool;
         return nextFree(pool);
     }
 }
 
 void GlobalLinkedPool::deallocate(void* t_ptr) {
-    NodeG* newNodeG = reinterpret_cast<NodeG*>(t_ptr);
-    *newNodeG = NodeG();
     // get the pool of ptr
     PoolHeaderG* pool = reinterpret_cast<PoolHeaderG*>(
         reinterpret_cast<size_t>(t_ptr) & POOL_MASK
     );
+
+#ifdef __x86_64
+    light_lock(&m_poolLock);
+#else
     std::lock_guard<std::mutex> lock(m_poolLock);
-    // update nodes to point to the newly create Node
-    NodeG* head = &pool->head;
-    if (head->next == nullptr) {
-        head->next = newNodeG;
-    } else {
-        newNodeG->next = head->next;
-        head->next = newNodeG;
-    }
-    // pool is empty, let's free it!
-    size_t newSize = --pool->sizeOfPool;
-    if (newSize == 0) {
+#endif
+
+    if (pool->sizeOfPool == 1) {
         m_freePools.erase(pool);
         free(pool);
         m_freePool = m_freePools.size() == 0 ? nullptr : *m_freePools.begin();
     } else {
+        NodeG* newNodeG = new (t_ptr) NodeG();
+        // update nodes to point to the newly create Node
+        NodeG& head = pool->head;
+        if (head.next == nullptr) {
+            head.next = newNodeG;
+        } else {
+            newNodeG->next = head.next;
+            head.next = newNodeG;
+        }
         m_freePool = pool;
-        if (newSize == m_poolSize - 1) {
+        if (--pool->sizeOfPool == m_poolSize - 1) {
             m_freePools.insert(pool);
         }
     }
+#ifdef __x86_64
+    light_unlock(&m_poolLock);
+#endif
+}
+
+void GlobalLinkedPool::constructPoolHeader(char* t_ptr) {
+    // first slot after the header
+    NodeG* headNext = reinterpret_cast<NodeG*>(sizeof(PoolHeaderG) + t_ptr);
+    // create the header at the start of the pool
+    new (t_ptr) PoolHeaderG(m_sizeOfObjects, headNext);
+    // skip the header
+    t_ptr = reinterpret_cast<char*>(headNext);
+    // for each slot in the pool, create a node that is linked to the next slot
+    for (size_t i = 0; i < m_poolSize - 1; ++i) {
+        NodeG* newNode = new (t_ptr) NodeG();
+        t_ptr += m_sizeOfObjects;
+        newNode->next = reinterpret_cast<NodeG*>(t_ptr);
+    }
+    // create last node of the list, which isn't linked to anything
+    new (t_ptr) NodeG();
 }
 
 void* GlobalLinkedPool::nextFree(Pool pool) {
     PoolHeaderG* header = reinterpret_cast<PoolHeaderG*>(pool);
-    NodeG* head = &(header->head);
-    std::lock_guard<std::mutex> lock(m_poolLock);
-    if (head->next) {
-        void* toReturn = head->next;
-        head->next = head->next->next;
+    NodeG& head = header->head;
+    if (head.next) {
+        void* toReturn = head.next;
+        head.next = head.next->next;
         if (++(header->sizeOfPool) == m_poolSize) {
             m_freePools.erase(pool);
             m_freePool = m_freePools.size() == 0 ? nullptr : *m_freePools.begin();
         }
+#ifdef __x86_64
+        light_unlock(&m_poolLock);
+#endif
         return toReturn;
     }
-    return head->next;
+#ifdef __x86_64
+    light_unlock(&m_poolLock);
+#endif
+    return head.next;
 }
 
 const PoolHeaderG& GlobalLinkedPool::getPoolHeader(void* t_ptr) {

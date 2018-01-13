@@ -36,22 +36,18 @@ inline void* custom_new_no_throw(size_t size) {
         return std::malloc(size);
     } else {
         size_t remainder = size & __mod; // size % sizeof(void*)
-        // get the next multiple of size(void*)
+        // round up to the next multiple of <sizeof(void*)>
         size = remainder == 0 ? size : (size + __mod) & ~__mod;
-        auto poolAlloc = __allocators[getAllocatorsIndex(size)].get();
+        auto& poolAlloc = __allocators[getAllocatorsIndex(size)];
         if (poolAlloc) {
             // our pool was already created, just use it
             return poolAlloc->allocate();
         } else {
-            // create the pool which can hold objects of size
-            // <size>
-            auto newPool = static_cast<GlobalLinkedPool*>(
-                malloc(sizeof(GlobalLinkedPool))
+            // create the pool which can hold objects of size <size>
+            poolAlloc.reset(
+                new (malloc(sizeof(GlobalLinkedPool))) GlobalLinkedPool(size)
             );
-            new (newPool) GlobalLinkedPool(size);
-            __allocators[getAllocatorsIndex(size)] =
-                std::unique_ptr<GlobalLinkedPool>(newPool);
-            return newPool->allocate();
+            return poolAlloc->allocate();
         }
     }
 }
@@ -68,7 +64,8 @@ inline void custom_delete(void* ptr) throw() {
     const PoolHeaderG& ph = GlobalLinkedPool::getPoolHeader(ptr);
     // find out if the pointer was allocated with malloc
     // or within a pool
-    if (strcmp(ph.isPool, PoolHeaderG::IS_POOL) != 0) {
+    if (strcmp(ph.isPool, PoolHeaderG::IS_POOL) != 0 ||
+        ph.sizeOfObjects > __threshold) {
         std::free(ptr);
     } else {
         // convert the size to an index of the allocators vector

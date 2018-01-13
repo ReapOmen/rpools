@@ -54,7 +54,7 @@ inline void* custom_new_no_throw(size_t size) {
         size_t remainder = size & __mod; // size % sizeof(void*)
         // get the next multiple of size(void*)
         size = remainder == 0 ? size : (size + __mod) & ~__mod;
-        auto poolAlloc = __allocators[getAllocatorsIndex(size)].get();
+        auto& poolAlloc = __allocators[getAllocatorsIndex(size)];
         if (poolAlloc) {
             size_t poolSize = poolAlloc->getNumOfPools();
             // our pool was already created, just use it
@@ -67,15 +67,12 @@ inline void* custom_new_no_throw(size_t size) {
         } else {
             // create the pool which can hold objects of size
             // <size>
-            auto newPool = static_cast<GlobalLinkedPool*>(
-                malloc(sizeof(GlobalLinkedPool))
+            poolAlloc.reset(
+                new (malloc(sizeof(GlobalLinkedPool))) GlobalLinkedPool(size)
             );
-            new (newPool) GlobalLinkedPool(size);
-            __allocators[getAllocatorsIndex(size)] =
-                std::unique_ptr<GlobalLinkedPool>(newPool);
             ac.addAllocation(__usablePoolSize);
             ac.addOverhead(sizeof(PoolHeaderG));
-            return newPool->allocate();
+            return poolAlloc->allocate();
         }
     }
 }
