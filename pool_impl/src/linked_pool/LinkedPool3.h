@@ -148,12 +148,8 @@ void LinkedPool3<T>::deallocate(void* t_ptr) {
         Node* newNodeG = new (t_ptr) Node();
         // update nodes to point to the newly create Node
         Node& head = pool->head;
-        if (head.next == nullptr) {
-            head.next = newNodeG;
-        } else {
-            newNodeG->next = head.next;
-            head.next = newNodeG;
-        }
+        newNodeG->next = head.next;
+        head.next = newNodeG;
         m_freePool = pool;
         if (--pool->sizeOfPool == m_poolSize - 1) {
             m_freePools.insert(pool);
@@ -185,6 +181,7 @@ void* LinkedPool3<T>::nextFree(Pool pool) {
         head.next = head.next->next;
         if (++(header->sizeOfPool) == m_poolSize) {
             m_freePools.erase(pool);
+            m_freePool = m_freePools.size() == 0 ? nullptr : *m_freePools.begin();
         }
     }
 #ifdef __x86_64

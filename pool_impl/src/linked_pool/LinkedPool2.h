@@ -139,12 +139,8 @@ void LinkedPool2<T>::deallocate(void* t_ptr) {
         Node* newNode = new (t_ptr) Node();
         // update nodes to point to the newly create Node
         Node& head = pool->head;
-        if (head.next == nullptr) {
-            head.next = newNode;
-        } else {
-            newNode->next = head.next;
-            head.next = newNode;
-        }
+        newNode->next = head.next;
+        head.next = newNode;
         if (--pool->sizeOfPool == m_poolSize - 1) {
             m_freePools.insert(pool);
         }
