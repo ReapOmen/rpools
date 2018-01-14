@@ -71,7 +71,7 @@ struct avl_tree{
 // *a > *b : return pos
 typedef int avl_cmp_func (struct avl_node *a, struct avl_node *b, void *aux);
 
-void avl_init(struct avl_tree *tree, void *aux);
+struct avl_tree* avl_init(struct avl_tree *tree, void *aux);
 void avl_set_aux(struct avl_tree *tree, void *aux);
 struct avl_node* avl_insert(struct avl_tree *tree,
                             struct avl_node *node,

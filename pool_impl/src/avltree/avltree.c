@@ -431,10 +431,11 @@ struct avl_node* avl_search_smaller(struct avl_tree *tree,
     }
 }
 
-void avl_init(struct avl_tree *tree, void *aux)
+struct avl_tree* avl_init(struct avl_tree *tree, void *aux)
 {
     tree->root = NULL;
     tree->aux = aux;
+    return tree;
 }
 
 void avl_set_aux(struct avl_tree *tree, void *aux)
@@ -677,4 +678,3 @@ void avl_remove(struct avl_tree *tree,
 
     __AVL_DEBUG_DISPLAY(tree);
 }
-
