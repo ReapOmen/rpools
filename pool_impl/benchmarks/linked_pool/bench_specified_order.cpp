@@ -6,14 +6,10 @@
 #include "Utility.h"
 #include "unit_test/TestObject.h"
 #include "linked_pool/LinkedPool.h"
-#include "linked_pool/LinkedPool2.h"
 #include "linked_pool/LinkedPool3.h"
-#include "linked_pool/LinkedPool4.h"
 
 using efficient_pools::LinkedPool;
-using efficient_pools2::LinkedPool2;
 using efficient_pools3::LinkedPool3;
-using efficient_pools4::LinkedPool4;
 using std::vector;
 
 float allocateN(size_t num, vector<TestObject*>& vec) {
@@ -141,13 +137,7 @@ int main(int argc, char *argv[]) {
         benchPool<LinkedPool>(BOUND, f, five, ten, "LinkedPool");
     }
     {
-        benchPool<LinkedPool2>(BOUND, f, five, ten, "LinkedPool2");
-    }
-    {
         benchPool<LinkedPool3>(BOUND, f, five, ten, "LinkedPool3");
-    }
-    {
-        benchPool<LinkedPool4>(BOUND, f, five, ten, "LinkedPool4");
     }
     return 0;
 }

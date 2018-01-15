@@ -1,18 +1,11 @@
 # Make test executable
 add_executable(test_linked_pool test_linked_pool.cpp)
 target_link_libraries(test_linked_pool avltree Catch)
-add_executable(test_linked_pool2 test_linked_pool2.cpp)
-target_link_libraries(test_linked_pool2 Catch)
 add_executable(test_linked_pool3 test_linked_pool3.cpp)
 target_link_libraries(test_linked_pool3 avltree Catch)
-add_executable(test_linked_pool4 test_linked_pool4.cpp)
-target_link_libraries(test_linked_pool4 Catch)
 
 add_test(NAME TestLinkedPool COMMAND test_linked_pool)
-add_test(NAME TestLinkedPool2 COMMAND test_linked_pool2)
 add_test(NAME TestLinkedPool3 COMMAND test_linked_pool3)
-add_test(NAME TestLinkedPool4 COMMAND test_linked_pool4)
-
 
 add_executable(test_global_linked_pool test_global_linked_pool.cpp)
 target_link_libraries(test_global_linked_pool avltree Catch)

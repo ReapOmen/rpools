@@ -1,15 +1,15 @@
 #include <string>
 
 #include "unit_test/TestObject.h"
-#include "linked_pool/LinkedPool4.h"
-using efficient_pools4::LinkedPool4;
+#include "linked_pool/LinkedPool.h"
+using efficient_pools::LinkedPool;
 
 #include <vector>
 using std::vector;
 
 int main(int argc, char* argv[]) {
     size_t BOUND = argc < 2 ? 10000 : std::stoul(argv[1]);
-    LinkedPool4<TestObject> lp;
+    LinkedPool<TestObject> lp;
     vector<TestObject*> objs;
     for (size_t i = 0; i < BOUND; ++i) {
         objs.push_back(static_cast<TestObject*>(lp.allocate()));
