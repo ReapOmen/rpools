@@ -1,4 +1,3 @@
-#define CATCH_CONFIG_MAIN
 #include "catch.hpp"
 
 #include <vector>
@@ -30,19 +29,6 @@ TEST_CASE("Allocations between 1 and 128 bytes use GlobalLinkedPool",
                 REQUIRE(h == hLast);
             }
         }
-    }
-}
-
-TEST_CASE("Allocations over 128 bytes use malloc",
-          "[custom_new_delete]") {
-    // the upperbound can be anything
-    for (size_t i = 129; i < 1000; ++i) {
-        void* ptr = custom_new_no_throw(i);
-        //auto& ph = GlobalLinkedPool::getPoolHeader(ptr);
-        //bool output1 = strcmp(ph.isPool, PoolHeaderG::IS_POOL) != 0;
-        //bool output2 = ph.sizeOfObjects > 128;
-        //bool requiredVal = output1 || output2;
-        REQUIRE(true == true);
     }
 }
 
