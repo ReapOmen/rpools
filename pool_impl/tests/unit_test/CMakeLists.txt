@@ -4,7 +4,7 @@ target_link_libraries(test_linked_pool avltree Catch)
 add_executable(test_linked_pool2 test_linked_pool2.cpp)
 target_link_libraries(test_linked_pool2 Catch)
 add_executable(test_linked_pool3 test_linked_pool3.cpp)
-target_link_libraries(test_linked_pool3 Catch)
+target_link_libraries(test_linked_pool3 avltree Catch)
 add_executable(test_linked_pool4 test_linked_pool4.cpp)
 target_link_libraries(test_linked_pool4 Catch)
 

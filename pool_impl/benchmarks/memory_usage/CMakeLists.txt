@@ -1,3 +1,6 @@
 add_executable(bench_mem_normal bench_normal.cpp)
+target_link_libraries(bench_mem_normal avltree)
 add_executable(bench_mem_linked_uset bench_linked_uset.cpp)
+target_link_libraries(bench_mem_linked_uset avltree)
 add_executable(bench_mem_linked_set bench_linked_set.cpp)
+target_link_libraries(bench_mem_linked_set avltree)

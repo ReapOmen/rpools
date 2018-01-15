@@ -3,7 +3,6 @@
 
 #include <cstdlib>
 #include <unistd.h>
-#include <unordered_set>
 #include <cmath>
 
 extern "C" {
