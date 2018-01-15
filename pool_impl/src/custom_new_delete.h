@@ -22,28 +22,21 @@ namespace {
     const size_t __mod = sizeof(void*) - 1;
     const size_t __logOfVoid = std::log2(sizeof(void*));
 
-    struct GlobalLinkedPoolDeleter {
-        void operator()(GlobalLinkedPool* pool) {
-            std::free(pool);
+    template<typename T>
+    struct FreeDeleter {
+        void operator()(T* type) {
+            std::free(type);
         }
     };
 
-    struct AvlTreeDeleter {
-        void operator()(avl_tree* tree) {
-            std::free(tree);
-        }
-    };
+    std::vector<
+        std::unique_ptr<GlobalLinkedPool, FreeDeleter<GlobalLinkedPool>>,
+        mallocator<std::unique_ptr<GlobalLinkedPool>>
+    > __allocators(__threshold >> __logOfVoid);
 
-    std::vector<std::unique_ptr<GlobalLinkedPool, GlobalLinkedPoolDeleter>,
-                mallocator<std::unique_ptr<GlobalLinkedPool>>>
-        __allocators(__threshold >> __logOfVoid);
-
-    std::unique_ptr<avl_tree, AvlTreeDeleter>  __mallocedPages(
+    std::unique_ptr<avl_tree, FreeDeleter<avl_tree>>  __mallocedPages(
         avl_init((avl_tree*)std::malloc(sizeof(avl_tree)), NULL)
     );
-
-    // std::map<void*, size_t, std::less<void*>,
-    //          mallocator<std::pair<const void*, size_t>>> mallocedPages;
 
     inline size_t getAllocatorsIndex(size_t size) {
         if (size == 0) {
@@ -57,12 +50,14 @@ inline void* custom_new_no_throw(size_t size) {
     // use malloc for large sizes
     if (size > __threshold) {
         void* addr = std::malloc(size);
-        void* page = (void*)((size_t)addr & GlobalLinkedPool::POOL_MASK);
-        auto res = _get_entry(avl2::get2(__mallocedPages.get(), page), avl2::PageNode, avl);
+        size_t maskedAddr = reinterpret_cast<size_t>(addr) &
+            GlobalLinkedPool::POOL_MASK;
+        void* page = reinterpret_cast<void*>(maskedAddr);
+        auto res = _get_entry(page_get(__mallocedPages.get(), page), PageNode, avl);
         if (res) {
             ++res->num;
         } else {
-            avl2::insert2(__mallocedPages.get(), page);
+            page_insert(__mallocedPages.get(), page);
         }
         return addr;
     } else {
@@ -97,13 +92,13 @@ inline void custom_delete(void* ptr) throw() {
     // or within a pool
     void* page = (void*)((size_t)ptr &
                          GlobalLinkedPool::POOL_MASK);
-    avl_node* kv = avl2::get2(__mallocedPages.get(), page);
-    auto res = _get_entry(kv, avl2::PageNode, avl);
+    avl_node* kv = page_get(__mallocedPages.get(), page);
+    auto res = _get_entry(kv, PageNode, avl);
     if (res) {
         if (res->num > 1) {
             --res->num;
         } else {
-            avl2::remove2(__mallocedPages.get(), kv);
+            page_remove(__mallocedPages.get(), kv);
         }
     } else {
         // convert the size to an index of the allocators vector

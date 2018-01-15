@@ -40,12 +40,12 @@ OTHER DEALINGS IN THE SOFTWARE.
 
 #define max(a,b)    (((a) > (b)) ? (a) : (b))
 
-INLINE int _abs(int n) {
+int _abs(int n) {
     int mask = n >> ((sizeof(int)*8) -1);
     return (mask + n)^mask;
 }
 
-INLINE void avl_set_parent(struct avl_node *node, struct avl_node *parent)
+void avl_set_parent(struct avl_node *node, struct avl_node *parent)
 {
     node->parent = (struct avl_node *)(
         (uint64_t)parent | ((uint64_t)node->parent & 0x3));
@@ -66,7 +66,7 @@ INLINE void avl_set_parent(struct avl_node *node, struct avl_node *parent)
 #define __AVL_DEBUG_DISPLAY(tree)
 #endif
 
-INLINE void avl_set_bf(struct avl_node *node, int bf)
+void avl_set_bf(struct avl_node *node, int bf)
 {
     __AVL_DEBUG_BF_CHECK(bf);
 
@@ -78,10 +78,10 @@ INLINE void avl_set_bf(struct avl_node *node, int bf)
 #endif
 }
 
-INLINE struct avl_node* _rotate_LL(struct avl_node *parent,
-                                   int parent_bf,
-                                   int *child_bf,
-                                   int *height_delta)
+struct avl_node* _rotate_LL(struct avl_node *parent,
+                            int parent_bf,
+                            int *child_bf,
+                            int *height_delta)
 // MUST ensure that parent_bf <= 0
 {
     int p_right, c_left, c_right;
@@ -118,10 +118,10 @@ INLINE struct avl_node* _rotate_LL(struct avl_node *parent,
     return child;
 }
 
-INLINE struct avl_node* _rotate_RR(struct avl_node *parent,
-                                   int parent_bf,
-                                   int *child_bf,
-                                   int *height_delta)
+struct avl_node* _rotate_RR(struct avl_node *parent,
+                            int parent_bf,
+                            int *child_bf,
+                            int *height_delta)
 // MUST ensure that parent_bf >= 0
 {
     int p_left, c_left, c_right;
@@ -159,7 +159,7 @@ INLINE struct avl_node* _rotate_RR(struct avl_node *parent,
     return child;
 }
 
-INLINE struct avl_node* _rotate_LR(struct avl_node *parent, int parent_bf)
+struct avl_node* _rotate_LR(struct avl_node *parent, int parent_bf)
 {
     int child_bf, height_delta = 0;
     struct avl_node *child = parent->left;
@@ -177,7 +177,7 @@ INLINE struct avl_node* _rotate_LR(struct avl_node *parent, int parent_bf)
     return ret;
 }
 
-INLINE struct avl_node* _rotate_RL(struct avl_node *parent, int parent_bf)
+struct avl_node* _rotate_RL(struct avl_node *parent, int parent_bf)
 {
     int child_bf, height_delta = 0;
     struct avl_node *child = parent->right;
