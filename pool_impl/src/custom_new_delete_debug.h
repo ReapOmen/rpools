@@ -1,5 +1,5 @@
-#ifndef __CUSTOM_NEW_DELETE_H__
-#define __CUSTOM_NEW_DELETE_H__
+#ifndef __CUSTOM_NEW_DELETE_DEBUG_H__
+#define __CUSTOM_NEW_DELETE_DEBUG_H__
 
 #include <map>
 #include <set>
@@ -114,4 +114,4 @@ inline void custom_delete(void* ptr) throw() {
     }
 }
 
-#endif // __CUSTOM_NEW_DELETE_H__
+#endif // __CUSTOM_NEW_DELETE_DEBUG_H__

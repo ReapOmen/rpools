@@ -1,13 +1,15 @@
 #ifndef __GLOBAL_LINKED_POOL_H__
 #define __GLOBAL_LINKED_POOL_H__
 
-#include <cstdlib>
 #include <unistd.h>
 #include <cmath>
+#include <cstdlib>
+#include <new>
+
 extern "C" {
 #include "avltree/avl_utils.h"
 }
-#include "tools/mallocator.h"
+
 
 #ifdef __x86_64
 #include "light_lock.h"

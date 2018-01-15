@@ -1,9 +1,10 @@
 #ifndef __LINKED_POOL_H__
 #define __LINKED_POOL_H__
 
-#include <cstdlib>
 #include <unistd.h>
 #include <cmath>
+#include <cstdlib>
+#include <new>
 
 extern "C" {
 #include "avltree/avl_utils.h"

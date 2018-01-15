@@ -3,7 +3,6 @@
 
 #include <cmath>
 #include <vector>
-#include <map>
 
 extern "C" {
 #include "avltree/avl_utils.h"

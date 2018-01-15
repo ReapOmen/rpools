@@ -6,7 +6,7 @@ extern "C" {
 #endif
 
 #include "avltree.h"
-#include "cstdlib"
+#include "stdlib.h"
 
 struct PoolNode {
     struct avl_node avl;
@@ -27,7 +27,7 @@ int pool_cmp_func(struct avl_node *a, struct avl_node *b, void *aux) {
 }
 
 inline void pool_insert(struct avl_tree* tree, void* t_pool) {
-    PoolNode* node = (PoolNode*) std::malloc(sizeof(PoolNode));
+    PoolNode* node = (PoolNode*) malloc(sizeof(PoolNode));
     node->pool = t_pool;
     avl_insert(tree, &node->avl, pool_cmp_func);
 }
@@ -38,12 +38,12 @@ inline void pool_remove(struct avl_tree* tree, void* t_pool) {
     avl_node* res = avl_search(tree, &query.avl, pool_cmp_func);
     PoolNode* poolNode = _get_entry(res, PoolNode, avl);
     avl_remove(tree, res);
-    std::free(poolNode);
+    free(poolNode);
 }
 
 inline void* pool_first(struct avl_tree* tree) {
     PoolNode* firstPool = _get_entry(avl_first(tree), PoolNode, avl);
-    return firstPool ? firstPool->pool : nullptr;
+    return firstPool ? firstPool->pool : NULL;
 }
 
 struct PageNode {
@@ -66,7 +66,7 @@ int page_cmp_func(struct avl_node *a, struct avl_node *b, void *aux) {
 }
 
 inline void page_insert(struct avl_tree* tree, void* t_page) {
-    PageNode* node = (PageNode*) std::malloc(sizeof(PageNode));
+    PageNode* node = (PageNode*) malloc(sizeof(PageNode));
     node->pool = t_page;
     node->num = 1;
     avl_insert(tree, &node->avl, page_cmp_func);
@@ -81,7 +81,7 @@ inline avl_node* page_get(struct avl_tree* tree , void* t_page) {
 inline void page_remove(struct avl_tree* tree, struct avl_node* res) {
     PageNode* poolNode = _get_entry(res, PageNode, avl);
     avl_remove(tree, res);
-    std::free(poolNode);
+    free(poolNode);
 }
 
 #ifdef __cplusplus
