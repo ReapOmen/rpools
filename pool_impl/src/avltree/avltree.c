@@ -245,6 +245,18 @@ struct avl_node* avl_first(struct avl_tree *tree)
     return p;
 }
 
+struct avl_node* avl_first_const(const struct avl_tree *tree)
+{
+    struct avl_node *p = NULL;
+    struct avl_node *node = tree->root;
+
+    while(node) {
+        p = node;
+        node = node->left;
+    }
+    return p;
+}
+
 struct avl_node* avl_last(struct avl_tree *tree)
 {
     struct avl_node *p = NULL;

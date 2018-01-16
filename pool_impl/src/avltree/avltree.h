@@ -88,6 +88,7 @@ struct avl_node* avl_search_smaller(struct avl_tree *tree,
 void avl_remove(struct avl_tree *tree,
                 struct avl_node *node);
 struct avl_node* avl_first(struct avl_tree *tree);
+struct avl_node* avl_first_const(const struct avl_tree *tree);
 struct avl_node* avl_last(struct avl_tree *tree);
 struct avl_node* avl_next(struct avl_node *node);
 struct avl_node* avl_prev(struct avl_node *node);
