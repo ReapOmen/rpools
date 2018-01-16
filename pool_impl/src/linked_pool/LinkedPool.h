@@ -1,10 +1,14 @@
 #ifndef __LINKED_POOL_H__
 #define __LINKED_POOL_H__
 
-#include <cstdlib>
 #include <unistd.h>
-#include <unordered_set>
 #include <cmath>
+#include <cstdlib>
+#include <new>
+
+extern "C" {
+#include "avltree/avl_utils.h"
+}
 
 #ifdef __x86_64
 #include "light_lock.h"
@@ -69,7 +73,8 @@ public:
     size_t getPoolSize() { return m_poolSize; }
 
 private:
-    std::unordered_set<Pool> m_freePools;
+    avl_tree m_freePools;
+    //std::unordered_set<Pool> m_freePools;
 #ifdef __x86_64
     light_lock_t m_poolLock;
 #else
@@ -101,6 +106,7 @@ LinkedPool<T>::LinkedPool()
 #endif
       ),
       m_poolSize((PAGE_SIZE - sizeof(PoolHeader)) / sizeof(T)) {
+    avl_init(&m_freePools, NULL);
 }
 
 template<typename T>
@@ -110,13 +116,14 @@ void* LinkedPool<T>::allocate() {
 #else
     std::lock_guard<std::mutex> lock(m_poolLock);
 #endif
-    if (m_freePools.size() > 0) {
-         return nextFree(*m_freePools.begin());
+    Pool freePool = pool_first(&m_freePools);
+    if (freePool) {
+        return nextFree(freePool);
     } else {
         // create a new pool because there are no free pool slots left
         Pool pool = aligned_alloc(PAGE_SIZE, PAGE_SIZE);
         constructPoolHeader(pool);
-        m_freePools.insert(pool);
+        pool_insert(&m_freePools, pool);
         return nextFree(pool);
     }
 }
@@ -133,20 +140,16 @@ void LinkedPool<T>::deallocate(void* t_ptr) {
     std::lock_guard<std::mutex> lock(m_poolLock);
 #endif
     if (pool->sizeOfPool == 1) {
-        m_freePools.erase(pool);
+        pool_remove(&m_freePools, pool);
         free(pool);
     } else {
         Node* newNode = new (t_ptr) Node();
         // update nodes to point to the newly create Node
         Node& head = pool->head;
-        if (head.next == nullptr) {
-            head.next = newNode;
-        } else {
-            newNode->next = head.next;
-            head.next = newNode;
-        }
+        newNode->next = head.next;
+        head.next = newNode;
         if (--pool->sizeOfPool == m_poolSize - 1) {
-            m_freePools.insert(pool);
+            pool_insert(&m_freePools, pool);
         }
     }
 #ifdef __x86_64
@@ -174,7 +177,7 @@ void* LinkedPool<T>::nextFree(Pool pool) {
     if (head.next) {
         head.next = head.next->next;
         if (++(header->sizeOfPool) == m_poolSize) {
-            m_freePools.erase(pool);
+            pool_remove(&m_freePools, pool);
         }
     }
 #ifdef __x86_64

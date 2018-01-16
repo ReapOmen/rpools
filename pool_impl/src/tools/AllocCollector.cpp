@@ -1,6 +1,5 @@
 #include "AllocCollector.h"
 #include "proc_utils.h"
-#include <unistd.h>
 
 AllocCollector::AllocCollector()
     : m_snapshotCount(0),

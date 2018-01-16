@@ -1,5 +1,5 @@
-#ifndef __CUSTOM_NEW_DELETE_H__
-#define __CUSTOM_NEW_DELETE_H__
+#ifndef __CUSTOM_NEW_DELETE_DEBUG_H__
+#define __CUSTOM_NEW_DELETE_DEBUG_H__
 
 #include <map>
 #include <set>
@@ -7,6 +7,7 @@
 #include <algorithm>
 
 #include "tools/mallocator.h"
+#include "tools/FreeDeleter.h"
 #include "tools/AllocCollector.h"
 #include "linked_pool/GlobalLinkedPool.h"
 
@@ -26,7 +27,7 @@ namespace {
     const size_t __mod = sizeof(void*) - 1;
     const size_t __logOfVoid = std::log2(sizeof(void*));
 
-    std::vector<std::unique_ptr<GlobalLinkedPool>,
+    std::vector<std::unique_ptr<GlobalLinkedPool, FreeDeleter<GlobalLinkedPool>>,
                 mallocator<std::unique_ptr<GlobalLinkedPool>>>
         __allocators(__threshold >> __logOfVoid);
     // the pointers that have been allocated with malloc and
@@ -114,4 +115,4 @@ inline void custom_delete(void* ptr) throw() {
     }
 }
 
-#endif // __CUSTOM_NEW_DELETE_H__
+#endif // __CUSTOM_NEW_DELETE_DEBUG_H__

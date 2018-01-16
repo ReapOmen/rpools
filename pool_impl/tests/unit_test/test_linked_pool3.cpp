@@ -2,24 +2,25 @@
 
 #include "TestObject.h"
 #include "TestObject2.h"
-#include "linked_pool/GlobalLinkedPool.h"
-using efficient_pools::GlobalLinkedPool;
-using efficient_pools::PoolHeaderG;
+#include "linked_pool/LinkedPool3.h"
+using efficient_pools3::LinkedPool3;
+using efficient_pools3::PoolHeader;
 
-void test_pool_size(size_t size) {
-    GlobalLinkedPool glp(size);
-    size_t expectedSize = (GlobalLinkedPool::PAGE_SIZE -
-                           sizeof(PoolHeaderG)) / size;
-    REQUIRE(glp.getPoolSize() == expectedSize);
+template<typename T>
+void test_pool_size() {
+    LinkedPool3<T> lp;
+    size_t expectedSize = (LinkedPool3<TestObject>::PAGE_SIZE -
+                           sizeof(PoolHeader)) / sizeof(T);
+    REQUIRE(lp.getPoolSize() == expectedSize);
 }
 
-TEST_CASE("Pool size of LinkedPool is correct for different objects",
-          "[LinkedPool]") {
+TEST_CASE("Pool size of LinkedPool3 is correct for different objects",
+          "[LinkedPool3]") {
     SECTION("Pool size for TestObject") {
-        test_pool_size(sizeof(TestObject));
+        test_pool_size<TestObject>();
     }
     SECTION("Pool size for TestObject2") {
-        test_pool_size(sizeof(TestObject2));
+        test_pool_size<TestObject2>();
     }
 }
 
@@ -28,7 +29,7 @@ using std::vector;
 
 template<typename T>
 void test_allocation_1() {
-    GlobalLinkedPool lp(sizeof(T));
+    LinkedPool3<T> lp;
     size_t size = lp.getPoolSize();
     vector<T*> objs(size);
     objs[0] = new (lp.allocate()) T();
@@ -47,7 +48,7 @@ void test_allocation_1() {
 
 // where P is LinkedPool.getPoolSize()
 TEST_CASE("Allocating P objects returns correct pointers",
-          "[LinkedPool]") {
+          "[LinkedPool3]") {
     SECTION("Allocate TestObjects") {
         test_allocation_1<TestObject>();
     }
@@ -58,7 +59,7 @@ TEST_CASE("Allocating P objects returns correct pointers",
 
 template<typename T>
 void test_allocation_2() {
-    GlobalLinkedPool lp(sizeof(T));
+    LinkedPool3<T> lp;
     // allocate two more objects which will get
     // allocated in a second pool
     size_t size = lp.getPoolSize() + 2;
@@ -72,8 +73,8 @@ void test_allocation_2() {
     // and the address of the (P + 1) object, we should
     // get that they are different based on the assumption that
     // only P objects fit in one pool
-    REQUIRE(((size_t)objs[size - 2] & GlobalLinkedPool::POOL_MASK)
-            != ((size_t)objs[0] & GlobalLinkedPool::POOL_MASK));
+    REQUIRE(((size_t)objs[size - 2] & LinkedPool3<T>::POOL_MASK)
+            != ((size_t)objs[0] & LinkedPool3<T>::POOL_MASK));
     // last 2 elements are from the same pool (i.e. P+1 and P+2)
     REQUIRE(objs[size - 2] + 1 == objs[size - 1]);
     // clean up
@@ -84,7 +85,7 @@ void test_allocation_2() {
 
 // where P is LinkedPool.getPoolSize()
 TEST_CASE("Allocating more than P objects returns correct pointers",
-          "[LinkedPool]") {
+          "[LinkedPool3]") {
     SECTION("Allocate TestObjects") {
         test_allocation_2<TestObject>();
     }
@@ -95,7 +96,7 @@ TEST_CASE("Allocating more than P objects returns correct pointers",
 
 template<typename T>
 void test_interleaving() {
-    GlobalLinkedPool lp(sizeof(T));
+    LinkedPool3<T> lp;
     // we will allocate 5 objects
     size_t size = 5;
     vector<T*> objs(size);
@@ -125,7 +126,7 @@ void test_interleaving() {
     }
 }
 
-TEST_CASE("(De)allocation sequence produces correct result", "[LinkedPool]") {
+TEST_CASE("(De)allocation sequence produces correct result", "[LinkedPool3]") {
     SECTION("TestObject") {
         test_interleaving<TestObject>();
     }
@@ -136,7 +137,7 @@ TEST_CASE("(De)allocation sequence produces correct result", "[LinkedPool]") {
 
 template<typename T>
 void test_pools_fill_up() {
-    GlobalLinkedPool lp(sizeof(T));
+    LinkedPool3<T> lp;
     size_t size = lp.getPoolSize() * 2;
     vector<T*> objs(size);
     for (size_t i = 0; i < size; ++i) {
@@ -160,7 +161,7 @@ void test_pools_fill_up() {
     }
 }
 
-TEST_CASE("A new pool allocates iff all the other pools are full", "[LinkedPool]") {
+TEST_CASE("A new pool allocates iff all the other pools are full", "[LinkedPool3]") {
     SECTION("TestObject") {
         test_pools_fill_up<TestObject>();
     }
