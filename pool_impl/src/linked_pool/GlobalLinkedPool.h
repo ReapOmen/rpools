@@ -87,7 +87,7 @@ public:
     void deallocate(void* t_ptr);
 
     size_t getPoolSize() const { return m_poolSize; }
-    size_t getNumOfPools() const { return m_numOfPools; }
+    size_t getNumOfPools() const { return pool_count(&m_freePools); }
 
     static const PoolHeaderG& getPoolHeader(void* t_ptr);
 
@@ -100,7 +100,6 @@ private:
 #endif
     const size_t m_sizeOfObjects;
     const size_t m_poolSize;
-    size_t m_numOfPools;
     Pool m_freePool;
 
     void constructPoolHeader(char* t_ptr);
@@ -126,7 +125,6 @@ GlobalLinkedPool::GlobalLinkedPool()
       ),
       m_sizeOfObjects(8),
       m_poolSize((PAGE_SIZE - sizeof(PoolHeaderG)) / m_sizeOfObjects),
-      m_numOfPools(0),
       m_freePool(nullptr) {
     avl_init(&m_freePools, NULL);
 }
@@ -140,7 +138,6 @@ GlobalLinkedPool::GlobalLinkedPool(size_t t_sizeOfObjects)
       ),
       m_sizeOfObjects(t_sizeOfObjects < sizeof(NodeG) ? sizeof(NodeG) : t_sizeOfObjects),
       m_poolSize((PAGE_SIZE - sizeof(PoolHeaderG)) / m_sizeOfObjects),
-      m_numOfPools(0),
       m_freePool(nullptr) {
     avl_init(&m_freePools, NULL);
 }
