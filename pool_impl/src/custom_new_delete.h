@@ -9,6 +9,7 @@ extern "C" {
 }
 
 #include "tools/mallocator.h"
+#include "tools/FreeDeleter.h"
 #include "linked_pool/GlobalLinkedPool.h"
 
 namespace {
@@ -20,13 +21,6 @@ namespace {
                                     // on objects of size > 128
     const size_t __mod = sizeof(void*) - 1;
     const size_t __logOfVoid = std::log2(sizeof(void*));
-
-    template<typename T>
-    struct FreeDeleter {
-        void operator()(T* type) {
-            std::free(type);
-        }
-    };
 
     std::vector<
         std::unique_ptr<GlobalLinkedPool, FreeDeleter<GlobalLinkedPool>>,

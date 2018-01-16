@@ -16,6 +16,8 @@ target_include_directories(Catch INTERFACE ${CATCH_INCLUDE_DIR})
 add_library(avltree ./src/avltree/avltree.c)
 set_target_properties(avltree PROPERTIES PUBLIC_HEADER ./src/avltree/avl_utils.h)
 target_include_directories(avltree PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src/avltree)
+target_compile_options(avltree PRIVATE -g)
+
 
 set(LP_PATH ${PROJECT_SOURCE_DIR}/src)
 include_directories(${LP_PATH})

@@ -7,6 +7,7 @@
 #include <algorithm>
 
 #include "tools/mallocator.h"
+#include "tools/FreeDeleter.h"
 #include "tools/AllocCollector.h"
 #include "linked_pool/GlobalLinkedPool.h"
 
@@ -26,7 +27,7 @@ namespace {
     const size_t __mod = sizeof(void*) - 1;
     const size_t __logOfVoid = std::log2(sizeof(void*));
 
-    std::vector<std::unique_ptr<GlobalLinkedPool>,
+    std::vector<std::unique_ptr<GlobalLinkedPool, FreeDeleter<GlobalLinkedPool>>,
                 mallocator<std::unique_ptr<GlobalLinkedPool>>>
         __allocators(__threshold >> __logOfVoid);
     // the pointers that have been allocated with malloc and
