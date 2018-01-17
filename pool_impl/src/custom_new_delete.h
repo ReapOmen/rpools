@@ -93,6 +93,7 @@ inline void custom_delete(void* ptr) throw() {
         } else {
             page_remove(__mallocedPages.get(), kv);
         }
+        std::free(ptr);
     } else {
         // convert the size to an index of the allocators vector
         // by dividing it to sizeof(void*)
