@@ -3,7 +3,11 @@
 
 struct TestObject {
     int x, y, z;
-    virtual void print() {}
+    virtual void print() {
+        (void)x;
+        (void)y;
+        (void)z;
+    }
     virtual ~TestObject() = default;
 };
 
