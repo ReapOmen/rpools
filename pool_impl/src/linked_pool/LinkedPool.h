@@ -74,7 +74,6 @@ public:
 
 private:
     avl_tree m_freePools;
-    //std::unordered_set<Pool> m_freePools;
 #ifdef __x86_64
     light_lock_t m_poolLock;
 #else

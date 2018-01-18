@@ -3,15 +3,15 @@
 #include <vector>
 using std::vector;
 
-#include "custom_new_delete.h"
+#include "custom_new_delete2.h"
 using efficient_pools::PoolHeaderG;
 
 TEST_CASE("Allocations between 0 and 128 bytes use GlobalLinkedPool",
           "[custom_new_delete]") {
     void* first = custom_new_no_throw(0);
-    for (size_t i = 1; i < sizeof(void*) + 1; ++i) {
+    cout << first << endl;
+    for (size_t i = 1; i <= sizeof(void*); ++i) {
         void* ptr = custom_new_no_throw(i);
-
         REQUIRE((GlobalLinkedPool::POOL_MASK & (size_t)first) ==
                 (GlobalLinkedPool::POOL_MASK & (size_t)ptr));
 
@@ -21,16 +21,18 @@ TEST_CASE("Allocations between 0 and 128 bytes use GlobalLinkedPool",
         const auto& h = GlobalLinkedPool::getPoolHeader(ptr);
         REQUIRE(h == hLast);
 
-        // an offset of 8 is required between each slot
-        REQUIRE((void*)((char*)first + i * sizeof(void*)) == ptr);
+        // an offset of 9 is required between each slot
+        char* expected = (char*)first + i * (sizeof(void*) + 1);
+        REQUIRE(reinterpret_cast<void*>(expected) == ptr);
     }
-    for (size_t multiple = 1; multiple <= 1; ++multiple) {
+    for (size_t multiple = 1; multiple <= 15; ++multiple) {
         size_t start = sizeof(void*) * multiple;
         size_t end = sizeof(void*) * (multiple + 1);
         first = custom_new_no_throw(start + 1);
+        cout << start << " " << end << endl;
         for (size_t size = start + 2; size <= end; ++size) {
-            // allocations are done in pools of multiples of 8
-            // 9-16 -> 16
+            // allocations are done in pools of multiples of 17, 33, etc.
+            // 9-16 -> 17
             // etc.
             void* ptr = custom_new_no_throw(size);
             REQUIRE((GlobalLinkedPool::POOL_MASK & (size_t)first) ==

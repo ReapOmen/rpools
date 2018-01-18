@@ -16,8 +16,7 @@ target_include_directories(Catch INTERFACE ${CATCH_INCLUDE_DIR})
 add_library(avltree ./src/avltree/avltree.c)
 set_target_properties(avltree PROPERTIES PUBLIC_HEADER ./src/avltree/avl_utils.h)
 target_include_directories(avltree PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src/avltree)
-target_compile_options(avltree PRIVATE -g)
-
+target_compile_options(avltree PRIVATE -O3)
 
 set(LP_PATH ${PROJECT_SOURCE_DIR}/src)
 include_directories(${LP_PATH})
@@ -36,6 +35,11 @@ target_link_libraries(customnewdebug avltree)
 add_library(customnew SHARED ${LP_PATH}/avltree/avltree.c ${LP_PATH}/custom_new_delete.cpp)
 target_include_directories(customnew PRIVATE ${LP_PATH})
 target_compile_options(customnew PRIVATE -O3)
+
+# Prepare "libcustomnew2.so" for inject script
+add_library(customnew2 SHARED ${LP_PATH}/avltree/avltree.c ${LP_PATH}/custom_new_delete2.cpp)
+target_include_directories(customnew2 PRIVATE ${LP_PATH})
+target_compile_options(customnew2 PRIVATE -O3)
 
 add_subdirectory(tests)
 include_directories(${PROJECT_SOURCE_DIR}/tests)
