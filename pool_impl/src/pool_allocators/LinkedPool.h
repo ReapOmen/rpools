@@ -6,12 +6,14 @@
 #include <cstdlib>
 #include <new>
 
+#include "Node.h"
+
 extern "C" {
 #include "avltree/avl_utils.h"
 }
 
 #ifdef __x86_64
-#include "light_lock.h"
+#include "tools/light_lock.h"
 #else
 #include <mutex>
 #include <thread>
@@ -20,10 +22,6 @@ extern "C" {
 namespace efficient_pools {
 
 using Pool = void*;
-
-struct Node {
-    Node* next;
-};
 
 /**
    Every pool will have a PoolHeader, which contains information

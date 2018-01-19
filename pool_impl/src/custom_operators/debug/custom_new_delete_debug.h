@@ -5,16 +5,16 @@
 #include <set>
 #include <vector>
 #include <algorithm>
+#include <cmath>
 
 #include "tools/mallocator.h"
 #include "tools/FreeDeleter.h"
 #include "tools/AllocCollector.h"
-#include "linked_pool/GlobalLinkedPool.h"
+#include "pool_allocators/GlobalLinkedPool.h"
 
 namespace {
     using efficient_pools::GlobalLinkedPool;
     using efficient_pools::PoolHeaderG;
-    using efficient_pools::NodeG;
 
     const size_t __threshold = 128;
 

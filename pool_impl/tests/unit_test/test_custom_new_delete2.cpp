@@ -3,13 +3,12 @@
 #include <vector>
 using std::vector;
 
-#include "custom_new_delete2.h"
+#include "custom_operators/custom_new_delete_v2/custom_new_delete2.h"
 using efficient_pools::PoolHeaderG;
 
 TEST_CASE("Allocations between 0 and 128 bytes use GlobalLinkedPool",
           "[custom_new_delete]") {
     void* first = custom_new_no_throw(0);
-    cout << first << endl;
     for (size_t i = 1; i <= sizeof(void*); ++i) {
         void* ptr = custom_new_no_throw(i);
         REQUIRE((GlobalLinkedPool::POOL_MASK & (size_t)first) ==
@@ -29,7 +28,6 @@ TEST_CASE("Allocations between 0 and 128 bytes use GlobalLinkedPool",
         size_t start = sizeof(void*) * multiple;
         size_t end = sizeof(void*) * (multiple + 1);
         first = custom_new_no_throw(start + 1);
-        cout << start << " " << end << endl;
         for (size_t size = start + 2; size <= end; ++size) {
             // allocations are done in pools of multiples of 17, 33, etc.
             // 9-16 -> 17
