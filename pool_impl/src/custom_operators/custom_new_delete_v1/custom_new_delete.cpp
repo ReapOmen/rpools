@@ -31,7 +31,7 @@ void operator delete(void* t_ptr, const std::nothrow_t& nothrow_value) noexcept 
 }
 
 void* operator new[](std::size_t t_size) {
-    void* toRet = std::malloc(t_size);
+    void* toRet = custom_new(t_size);
     if (toRet == nullptr) {
         throw std::bad_alloc();
     }
@@ -39,13 +39,13 @@ void* operator new[](std::size_t t_size) {
 }
 
 void* operator new[](std::size_t t_size, const std::nothrow_t& nothrow_value) noexcept {
-    return std::malloc(t_size);
+    return custom_new_no_throw(t_size);
 }
 
 void operator delete[](void* t_ptr) noexcept {
-    std::free(t_ptr);
+    custom_delete(t_ptr);
 }
 
 void operator delete[](void* t_ptr, const std::nothrow_t& nothrow_value) noexcept {
-    std::free(t_ptr);
+    custom_delete(t_ptr);
 }

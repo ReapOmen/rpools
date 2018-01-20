@@ -78,7 +78,7 @@ inline void custom_delete(void* t_ptr) throw() {
         const PoolHeaderG& ph = GlobalLinkedPool::getPoolHeader(addr);
         // convert the size to an index of the allocators vector
         // by dividing it to sizeof(void*)
-        __allocators[getAllocatorsIndex(ph.sizeOfObjects)]
+        __allocators[getAllocatorsIndex(ph.sizeOfObjects - 1)]
             ->deallocate(addr);
     }
 }
