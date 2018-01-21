@@ -2,7 +2,7 @@
 
 #include "TestObject.h"
 #include "TestObject2.h"
-#include "linked_pool/GlobalLinkedPool.h"
+#include "pool_allocators/GlobalLinkedPool.h"
 using efficient_pools::GlobalLinkedPool;
 using efficient_pools::PoolHeaderG;
 

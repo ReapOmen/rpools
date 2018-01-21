@@ -4,18 +4,13 @@
 #include <cmath>
 #include <vector>
 
-extern "C" {
-#include "avltree/avl_utils.h"
-}
-
 #include "tools/mallocator.h"
 #include "tools/FreeDeleter.h"
-#include "linked_pool/GlobalLinkedPool.h"
+#include "pool_allocators/GlobalLinkedPool.h"
 
 namespace {
     using efficient_pools::GlobalLinkedPool;
     using efficient_pools::PoolHeaderG;
-    using efficient_pools::NodeG;
 
     const size_t __threshold = 128; // malloc performs equally well
                                     // on objects of size > 128
@@ -31,22 +26,23 @@ namespace {
         avl_init((avl_tree*)std::malloc(sizeof(avl_tree)), NULL)
     );
 
-    inline size_t getAllocatorsIndex(size_t size) {
-        if (size == 0) {
+    inline size_t getAllocatorsIndex(size_t t_size) {
+        if (t_size == 0) {
             return 0;
         }
-        return (size >> __logOfVoid) - 1;
+        return (t_size >> __logOfVoid) - 1;
     }
 }
 
-inline void* custom_new_no_throw(size_t size) {
+inline void* custom_new_no_throw(size_t t_size) {
     // use malloc for large sizes
-    if (size > __threshold) {
-        void* addr = std::malloc(size);
+    if (t_size > __threshold) {
+        void* addr = std::malloc(t_size);
         size_t maskedAddr = reinterpret_cast<size_t>(addr) &
             GlobalLinkedPool::POOL_MASK;
         void* page = reinterpret_cast<void*>(maskedAddr);
-        auto res = _get_entry(page_get(__mallocedPages.get(), page), PageNode, avl);
+        auto res = _get_entry(page_get(__mallocedPages.get(), page),
+                              PageNode, avl);
         if (res) {
             ++res->num;
         } else {
@@ -54,37 +50,36 @@ inline void* custom_new_no_throw(size_t size) {
         }
         return addr;
     } else {
-        size_t remainder = size & __mod; // size % sizeof(void*)
+        size_t remainder = t_size & __mod; // t_size % sizeof(void*)
         // round up to the next multiple of <sizeof(void*)>
-        size = remainder == 0 ? size : (size + __mod) & ~__mod;
-        auto& poolAlloc = __allocators[getAllocatorsIndex(size)];
+        t_size = remainder == 0 ? t_size : (t_size + __mod) & ~__mod;
+        auto& poolAlloc = __allocators[getAllocatorsIndex(t_size)];
         if (poolAlloc) {
             // our pool was already created, just use it
             return poolAlloc->allocate();
         } else {
             // create the pool which can hold objects of size <size>
             poolAlloc.reset(
-                new (malloc(sizeof(GlobalLinkedPool))) GlobalLinkedPool(size)
+                new (malloc(sizeof(GlobalLinkedPool))) GlobalLinkedPool(t_size)
             );
             return poolAlloc->allocate();
         }
     }
 }
 
-inline void* custom_new(size_t size) {
-    void* toRet = custom_new_no_throw(size);
+inline void* custom_new(size_t t_size) {
+    void* toRet = custom_new_no_throw(t_size);
     if (toRet == nullptr) {
         throw std::bad_alloc();
     }
     return toRet;
 }
 
-inline void custom_delete(void* ptr) throw() {
-    const PoolHeaderG& ph = GlobalLinkedPool::getPoolHeader(ptr);
+inline void custom_delete(void* t_ptr) throw() {
     // find out if the pointer was allocated with malloc
     // or within a pool
-    void* page = (void*)((size_t)ptr &
-                         GlobalLinkedPool::POOL_MASK);
+    size_t addr = reinterpret_cast<size_t>(t_ptr);
+    void* page = reinterpret_cast<void*>(addr & GlobalLinkedPool::POOL_MASK);
     avl_node* kv = page_get(__mallocedPages.get(), page);
     auto res = _get_entry(kv, PageNode, avl);
     if (res) {
@@ -93,11 +88,13 @@ inline void custom_delete(void* ptr) throw() {
         } else {
             page_remove(__mallocedPages.get(), kv);
         }
+        std::free(t_ptr);
     } else {
+        const PoolHeaderG& ph = GlobalLinkedPool::getPoolHeader(t_ptr);
         // convert the size to an index of the allocators vector
         // by dividing it to sizeof(void*)
         __allocators[getAllocatorsIndex(ph.sizeOfObjects)]
-            ->deallocate(ptr);
+            ->deallocate(t_ptr);
     }
 }
 

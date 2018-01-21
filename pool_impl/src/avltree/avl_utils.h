@@ -38,7 +38,7 @@ size_t pool_count(const struct avl_tree* tree) {
 }
 
 inline void pool_insert(struct avl_tree* tree, void* t_pool) {
-    struct PoolNode* node = (PoolNode*) malloc(sizeof(PoolNode));
+    struct PoolNode* node = (struct PoolNode*) malloc(sizeof(PoolNode));
     node->pool = t_pool;
     avl_insert(tree, &node->avl, pool_cmp_func);
 }
@@ -77,7 +77,7 @@ int page_cmp_func(struct avl_node *a, struct avl_node *b, void *aux) {
 }
 
 inline void page_insert(struct avl_tree* tree, void* t_page) {
-    struct PageNode* node = (PageNode*) malloc(sizeof(PageNode));
+    struct PageNode* node = (struct PageNode*) malloc(sizeof(PageNode));
     node->pool = t_page;
     node->num = 1;
     avl_insert(tree, &node->avl, page_cmp_func);

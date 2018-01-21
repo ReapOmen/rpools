@@ -2,7 +2,7 @@
 
 #include "TestObject.h"
 #include "TestObject2.h"
-#include "linked_pool/LinkedPool3.h"
+#include "pool_allocators/LinkedPool3.h"
 using efficient_pools3::LinkedPool3;
 using efficient_pools3::PoolHeader;
 

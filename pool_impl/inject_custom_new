@@ -12,7 +12,11 @@ else
             if [ $2 = "-gdb" ]; then
                 LD_PRELOAD="$PWD/build/libcustomnewdebug.so" gdb --args $1
             else
-                echo "Wrong 2nd argument"
+                if [ $2 = "-v2" ]; then
+                    LD_PRELOAD="$PWD/build/libcustomnew2.so" $1
+                else
+                    echo "Wrong 2nd argument"
+                fi
             fi
         fi
     fi
