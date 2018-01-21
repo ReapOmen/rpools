@@ -9,6 +9,7 @@
 #include "unit_test/TestObject.h"
 #include "pool_allocators/LinkedPool.h"
 #include "pool_allocators/LinkedPool3.h"
+#include "pool_allocators/MemoryPool.h"
 
 using efficient_pools::LinkedPool;
 using efficient_pools3::LinkedPool3;
@@ -160,6 +161,9 @@ int main(int argc, char *argv[]) {
     }
     {
         benchPool<LinkedPool3>(BOUND, f, order, "LinkedPool3");
+    }
+    {
+        benchPool<MemoryPool>(BOUND, f, order, "MemoryPool");
     }
     return 0;
 }

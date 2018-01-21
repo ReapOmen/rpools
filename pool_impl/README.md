@@ -68,3 +68,10 @@ Usage:
 * `python3 time_alloc_benchmarks.py -h` for instructions.\
 
 Note: Make sure `generate_alloc_file.py` was run and the project was built.
+
+
+## Licenses!
+Everything is GPLv3 except for the following sources which have their own license:
+* `src/avltree/avltree.c` (check source)
+* `src/avltree/avltree.h` (check source)
+* `src/pool_allocators/MemoryPool.h` (MIT)

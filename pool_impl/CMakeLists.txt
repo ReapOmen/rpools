@@ -16,8 +16,8 @@ add_subdirectory(src)
 include_directories(${SRC})
 
 # Prepare "avltree" library for linking
-add_library(avltree ./src/avltree/avltree.c)
-set_target_properties(avltree PROPERTIES PUBLIC_HEADER ./src/avltree/avl_utils.h)
+add_library(avltree ${SRC}/avltree/avltree.c)
+set_target_properties(avltree PROPERTIES PUBLIC_HEADER ${SRC}/avltree/avl_utils.h)
 target_compile_options(avltree PRIVATE -O3)
 
 # Prepare "gllinkedpool" library for linking
