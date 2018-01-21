@@ -9,7 +9,7 @@ using namespace efficient_pools;
 
 const size_t GlobalLinkedPool::PAGE_SIZE = sysconf(_SC_PAGESIZE);
 
-const size_t GlobalLinkedPool::POOL_MASK = -1 >>
+const size_t GlobalLinkedPool::POOL_MASK = ~0 >>
     (size_t) std::log2(GlobalLinkedPool::PAGE_SIZE)
     << (size_t) std::log2(GlobalLinkedPool::PAGE_SIZE);
 
