@@ -5,6 +5,7 @@
 
 #include "Utility.h"
 #include "unit_test/TestObject.h"
+#include "pool_allocators/MemoryPool.h"
 #include "pool_allocators/LinkedPool.h"
 #include "pool_allocators/LinkedPool3.h"
 
@@ -138,6 +139,9 @@ int main(int argc, char *argv[]) {
     }
     {
         benchPool<LinkedPool3>(BOUND, f, five, ten, "LinkedPool3");
+    }
+    {
+        benchPool<MemoryPool>(BOUND, f, five, ten, "MemoryPool");
     }
     return 0;
 }
