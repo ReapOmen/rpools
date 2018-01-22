@@ -27,6 +27,13 @@
 #include <cstddef>
 #include <vector>
 
+#ifdef __x86_64
+#include "tools/light_lock.h"
+#else
+#include <mutex>
+#include <thread>
+#endif
+
 template <typename T>
 class MemoryPool
 {
@@ -79,6 +86,12 @@ class MemoryPool
       Slot_* next;
     };
 
+#ifdef __x86_64
+    light_lock_t m_lock;
+#else
+    std::mutex m_lock;
+#endif
+
     typedef char* data_pointer_;
     typedef Slot_ slot_type_;
     typedef Slot_* slot_pointer_;
@@ -103,19 +116,18 @@ const noexcept
   return ((align - result) % align);
 }
 
-
-
 template <typename T>
-MemoryPool<T>::MemoryPool()
-noexcept
-{
-  currentBlock_ = nullptr;
-  currentSlot_ = nullptr;
-  lastSlot_ = nullptr;
-  freeSlots_ = nullptr;
+MemoryPool<T>::MemoryPool() noexcept
+    : m_lock(
+#ifdef __x86_64
+          LIGHT_LOCK_INIT
+#endif
+      ),
+      currentBlock_(nullptr),
+      currentSlot_(nullptr),
+      lastSlot_(nullptr),
+      freeSlots_ (nullptr) {
 }
-
-
 
 template <typename T>
 MemoryPool<T>::MemoryPool(const MemoryPool& memoryPool)
@@ -128,12 +140,12 @@ MemoryPool()
 template <typename T>
 MemoryPool<T>::MemoryPool(MemoryPool&& memoryPool)
 noexcept
-{
-  currentBlock_ = memoryPool.currentBlock_;
+    : m_lock(std::move(memoryPool.m_lock)),
+      currentBlock_(std::move(memoryPool.currentBlock_)),
+      currentSlot_(std::move(memoryPool.currentSlot_)),
+      lastSlot_(std::move(memoryPool.lastSlot_)),
+      freeSlots_(memoryPool.freeSlots_) {
   memoryPool.currentBlock_ = nullptr;
-  currentSlot_ = memoryPool.currentSlot_;
-  lastSlot_ = memoryPool.lastSlot_;
-  freeSlots_ = memoryPool.freeSlots;
 }
 
 
@@ -153,6 +165,7 @@ noexcept
 {
   if (this != &memoryPool)
   {
+    m_lock = memoryPool.m_lock;
     std::swap(currentBlock_, memoryPool.currentBlock_);
     currentSlot_ = memoryPool.currentSlot_;
     lastSlot_ = memoryPool.lastSlot_;
@@ -201,9 +214,9 @@ template <typename T>
 void
 MemoryPool<T>::allocateBlock()
 {
+
   // Allocate space for the new block and store a pointer to the previous one
-  data_pointer_ newBlock = reinterpret_cast<data_pointer_>
-                           (operator new(4096));
+  data_pointer_ newBlock = reinterpret_cast<data_pointer_>(operator new(4096));
   reinterpret_cast<slot_pointer_>(newBlock)->next = currentBlock_;
   currentBlock_ = reinterpret_cast<slot_pointer_>(newBlock);
   // Pad block body to staisfy the alignment requirements for elements
@@ -220,16 +233,26 @@ template <typename T>
 inline typename MemoryPool<T>::pointer
 MemoryPool<T>::allocate(size_type n, const_pointer hint)
 {
+#ifdef __x86_64
+  light_lock(&m_lock);
+#else
+  std::lock_guard<std::mutex> lock(m_lock);
+#endif
+  MemoryPool<T>::pointer toRet = nullptr;
   if (freeSlots_ != nullptr) {
     pointer result = reinterpret_cast<pointer>(freeSlots_);
     freeSlots_ = freeSlots_->next;
-    return result;
+    toRet = result;
   }
   else {
     if (currentSlot_ >= lastSlot_)
       allocateBlock();
-    return reinterpret_cast<pointer>(currentSlot_++);
+    toRet = reinterpret_cast<pointer>(currentSlot_++);
   }
+#ifdef __x86_64
+  light_unlock(&m_lock);
+#endif
+  return toRet;
 }
 
 
@@ -239,8 +262,16 @@ inline void
 MemoryPool<T>::deallocate(pointer p, size_type n)
 {
   if (p != nullptr) {
+#ifdef __x86_64
+    light_lock(&m_lock);
+#else
+    std::lock_guard<std::mutex> lock(m_lock);
+#endif
     reinterpret_cast<slot_pointer_>(p)->next = freeSlots_;
     freeSlots_ = reinterpret_cast<slot_pointer_>(p);
+#ifdef __x86_64
+    light_unlock(&m_lock);
+#endif
   }
 }
 
