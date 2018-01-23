@@ -12,6 +12,11 @@ set(CATCH_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/catch)
 add_library(Catch INTERFACE)
 target_include_directories(Catch INTERFACE ${CATCH_INCLUDE_DIR})
 
+find_package(Boost)
+if(Boost_FOUND)
+  include_directories(${Boost_INCLUDE_DIRS})
+endif()
+
 add_subdirectory(src)
 include_directories(${SRC})
 
@@ -27,7 +32,6 @@ add_library(gllinkedpool SHARED
 set_target_properties(gllinkedpool PROPERTIES PUBLIC_HEADER
   ${SRC}/pool_allocators/GlobalLinkedPool.h)
 target_compile_options(gllinkedpool PRIVATE -O3)
-
 
 # Prepare "libcustomnewdebug.so" for inject script
 add_library(customnewdebug SHARED

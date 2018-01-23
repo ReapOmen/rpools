@@ -75,3 +75,7 @@ Everything is GPLv3 except for the following sources which have their own licens
 * `src/avltree/avltree.c` (check source)
 * `src/avltree/avltree.h` (check source)
 * `src/pool_allocators/MemoryPool.h` (MIT)
+* `src/pool_allocators/pool.hpp` (Boost License)
+* `src/pool_allocators/pool_alloc.hpp` (Boost License)
+* `src/pool_allocators/object_pool.hpp` (Boost License)
+* `src/pool_allocators/poolfwd.hpp` (Boost License)
