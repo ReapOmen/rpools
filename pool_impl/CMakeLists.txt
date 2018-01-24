@@ -33,6 +33,14 @@ set_target_properties(gllinkedpool PROPERTIES PUBLIC_HEADER
   ${SRC}/pool_allocators/GlobalLinkedPool.h)
 target_compile_options(gllinkedpool PRIVATE -O3)
 
+# Prepare "nsgllinkedpool" library for linking
+add_library(nsgllinkedpool SHARED
+  ${SRC}/avltree/avltree.c
+  ${SRC}/pool_allocators/NSGlobalLinkedPool.cpp)
+set_target_properties(nsgllinkedpool PROPERTIES PUBLIC_HEADER
+  ${SRC}/pool_allocators/NSGlobalLinkedPool.h)
+target_compile_options(nsgllinkedpool PRIVATE -O3)
+
 # Prepare "libcustomnewdebug.so" for inject script
 add_library(customnewdebug SHARED
   ${SRC}/custom_operators/debug/custom_new_delete_debug.cpp
@@ -42,7 +50,7 @@ target_link_libraries(customnewdebug PRIVATE gllinkedpool)
 # Prepare "libcustomnew.so" for inject script
 add_library(customnew SHARED
   ${SRC}/custom_operators/custom_new_delete_v1/custom_new_delete.cpp)
-target_link_libraries(customnew PRIVATE gllinkedpool)
+target_link_libraries(customnew PRIVATE nsgllinkedpool)
 target_compile_options(customnew PRIVATE -O3)
 
 # Prepare "libcustomnew2.so" for inject script
