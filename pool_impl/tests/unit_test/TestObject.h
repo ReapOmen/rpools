@@ -1,11 +1,13 @@
 #ifndef __TEST_OBJECT_H__
 #define __TEST_OBJECT_H__
 
+#include <cstddef>
+
 struct TestObject {
-    int x, y, z;
+    size_t x;
+    int z;
     virtual void print() {
         (void)x;
-        (void)y;
         (void)z;
     }
     virtual ~TestObject() = default;

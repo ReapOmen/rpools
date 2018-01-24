@@ -7,6 +7,10 @@
 
 #include "Utility.h"
 #include "unit_test/TestObject.h"
+#ifdef INCLUDE_BOOST
+#include <boost/pool/object_pool.hpp>
+#endif
+#include "pool_allocators/MemoryPool.h"
 #include "pool_allocators/LinkedPool.h"
 #include "pool_allocators/LinkedPool3.h"
 
@@ -46,6 +50,47 @@ float deallocateN(size_t index, vector<TestObject*>& vec, T<TestObject>& lp) {
     lp.deallocate(vec[index]);
     return (std::clock() - start) / (double)(CLOCKS_PER_SEC / 1000);
 }
+
+#ifdef INCLUDE_BOOST
+template<template <typename, typename> class T>
+float allocateN(const pair<size_t, size_t>& range, vector<TestObject*>& vec,
+                T<TestObject, boost::default_user_allocator_malloc_free>& lp) {
+    std::clock_t start = std::clock();
+    for (size_t i = range.first; i < range.second; ++i) {
+        vec[i] = (TestObject*) lp.malloc();
+    }
+    return (std::clock() - start) / (double)(CLOCKS_PER_SEC / 1000);
+}
+
+template<template <typename, typename> class T>
+float deallocateN(size_t index, vector<TestObject*>& vec,
+                  T<TestObject, boost::default_user_allocator_malloc_free>& lp) {
+    std::clock_t start = std::clock();
+    lp.free(vec[index]);
+    return (std::clock() - start) / (double)(CLOCKS_PER_SEC / 1000);
+}
+
+template<template <typename, typename> class T>
+void benchPool(size_t BOUND, std::ofstream& f,
+               const vector<pair<size_t, bool>>& order,
+               const std::string& name) {
+    T<TestObject, boost::default_user_allocator_malloc_free> lp;
+    vector<TestObject*> objs(BOUND);
+    float alloc = 0.0f;
+    float dealloc = 0.0f;
+    size_t startIndex = 0;
+    for (const auto& pair : order) {
+        if (!pair.second) {
+            alloc += allocateN(make_pair(startIndex, startIndex + pair.first), objs, lp);
+            startIndex += pair.first;
+        } else {
+            dealloc += deallocateN(pair.first, objs, lp);
+        }
+    }
+    printToFile2(f, "TestObject", alloc, false, name);
+    printToFile2(f, "TestObject", dealloc, true, name);
+}
+#endif
 
 size_t SEED = std::chrono::system_clock::now().time_since_epoch().count();
 
@@ -161,5 +206,13 @@ int main(int argc, char *argv[]) {
     {
         benchPool<LinkedPool3>(BOUND, f, order, "LinkedPool3");
     }
+    {
+        benchPool<MemoryPool>(BOUND, f, order, "MemoryPool");
+    }
+#ifdef INCLUDE_BOOST
+    {
+        benchPool<boost::object_pool>(BOUND, f, order, "boost::object_pool");
+    }
+#endif
     return 0;
 }

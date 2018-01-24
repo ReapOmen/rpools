@@ -12,13 +12,13 @@ TEST_CASE("Allocations between 0 and 128 bytes use GlobalLinkedPool",
     for (size_t i = 1; i < sizeof(void*) + 1; ++i) {
         void* ptr = custom_new_no_throw(i);
 
-        REQUIRE((GlobalLinkedPool::POOL_MASK & (size_t)first) ==
-                (GlobalLinkedPool::POOL_MASK & (size_t)ptr));
+        REQUIRE((NSGlobalLinkedPool::POOL_MASK & (size_t)first) ==
+                (NSGlobalLinkedPool::POOL_MASK & (size_t)ptr));
 
         // same headers for 0 through 8 because they get allocated
         // in the same pool
-        const auto& hLast = GlobalLinkedPool::getPoolHeader(first);
-        const auto& h = GlobalLinkedPool::getPoolHeader(ptr);
+        const auto& hLast = NSGlobalLinkedPool::getPoolHeader(first);
+        const auto& h = NSGlobalLinkedPool::getPoolHeader(ptr);
         REQUIRE(h == hLast);
 
         // an offset of 8 is required between each slot
@@ -33,11 +33,11 @@ TEST_CASE("Allocations between 0 and 128 bytes use GlobalLinkedPool",
             // 9-16 -> 16
             // etc.
             void* ptr = custom_new_no_throw(size);
-            REQUIRE((GlobalLinkedPool::POOL_MASK & (size_t)first) ==
-                    (GlobalLinkedPool::POOL_MASK & (size_t)ptr));
+            REQUIRE((NSGlobalLinkedPool::POOL_MASK & (size_t)first) ==
+                    (NSGlobalLinkedPool::POOL_MASK & (size_t)ptr));
 
-            const auto& hLast = GlobalLinkedPool::getPoolHeader(first);
-            const auto& h = GlobalLinkedPool::getPoolHeader(ptr);
+            const auto& hLast = NSGlobalLinkedPool::getPoolHeader(first);
+            const auto& h = NSGlobalLinkedPool::getPoolHeader(ptr);
             REQUIRE(h == hLast);
 
             // offset of a certain multiple between each element and the
@@ -63,10 +63,10 @@ TEST_CASE("Pointers to objects of size < 129 are deallocated using GlobalLinkedP
             index = i - 2;
         } else {
             size_t oldSize =
-                GlobalLinkedPool::getPoolHeader(allocs[i-1]).sizeOfPool;
+                NSGlobalLinkedPool::getPoolHeader(allocs[i-1]).sizeOfPool;
             custom_delete(allocs[i-1]);
             REQUIRE(oldSize - 1 ==
-                    GlobalLinkedPool::getPoolHeader(allocs[index]).sizeOfPool);
+                    NSGlobalLinkedPool::getPoolHeader(allocs[index]).sizeOfPool);
         }
     }
 }

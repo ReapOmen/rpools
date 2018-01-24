@@ -6,6 +6,9 @@
 using efficient_pools3::LinkedPool3;
 using efficient_pools3::PoolHeader;
 
+#include <thread>
+#include <mutex>
+
 template<typename T>
 void test_pool_size() {
     LinkedPool3<T> lp;
@@ -167,5 +170,47 @@ TEST_CASE("A new pool allocates iff all the other pools are full", "[LinkedPool3
     }
     SECTION("TestObject2") {
         test_pools_fill_up<TestObject2>();
+    }
+}
+
+template<typename T>
+void performAllocAndDealloc(LinkedPool3<T>& lp, std::mutex& mtx) {
+    size_t BOUND = 100000;
+    std::vector<T*> ptrs(BOUND);
+    for (size_t i = 0; i < BOUND; ++i) {
+        ptrs[i] = new (lp.allocate()) T();
+        ptrs[i]->x += i;
+    }
+    for (size_t i = 0; i < BOUND; ++i) {
+        std::unique_lock<std::mutex> lock(mtx);
+        REQUIRE(ptrs[i]->x == i);
+        lock.unlock();
+        lp.deallocate(ptrs[i]);
+    }
+}
+
+template<typename T>
+void test_pools_are_syncrhonized() {
+    int threadsNo = 5;
+    std::mutex mtx;
+    LinkedPool3<T> lp;
+    std::vector<std::thread> threads(threadsNo);
+    for (int i = 0; i < threadsNo; ++i) {
+        threads[i] = std::thread(performAllocAndDealloc<T>,
+                                 std::ref(lp),
+                                 std::ref(mtx));
+    }
+    for(int i = 0; i < threadsNo; ++i) {
+        threads[i].join();
+    }
+    REQUIRE(lp.getNumberOfPools() == 0);
+}
+
+TEST_CASE("Pools are synchronized", "[LinkedPool3]") {
+    SECTION("TestObject") {
+        test_pools_are_syncrhonized<TestObject>();
+    }
+    SECTION("TestObject2") {
+        test_pools_are_syncrhonized<TestObject2>();
     }
 }

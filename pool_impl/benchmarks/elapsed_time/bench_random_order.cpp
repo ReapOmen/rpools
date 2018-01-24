@@ -5,6 +5,10 @@
 
 #include "Utility.h"
 #include "unit_test/TestObject.h"
+#ifdef INCLUDE_BOOST
+#include <boost/pool/object_pool.hpp>
+#endif
+#include "pool_allocators/MemoryPool.h"
 #include "pool_allocators/LinkedPool.h"
 #include "pool_allocators/LinkedPool3.h"
 
@@ -30,6 +34,27 @@ void benchPool(size_t BOUND, std::ofstream& f,
     }
     printToFile(f, "TestObject", start, true, name);
 }
+
+#ifdef INCLUDE_BOOST
+template<template <typename, typename> class T>
+void benchPool(size_t BOUND, std::ofstream& f,
+               const vector<size_t>& randomPos, const std::string& name) {
+    T<TestObject, boost::default_user_allocator_malloc_free> lp;
+    vector<TestObject*> objs;
+    objs.reserve(BOUND);
+    std::clock_t start = std::clock();
+    for (size_t i = 0; i < BOUND; ++i) {
+        objs.push_back((TestObject*) lp.malloc());
+    }
+    printToFile(f, "TestObject", start, false, name);
+
+    start = std::clock();
+    for (size_t i = 0; i < BOUND; ++i) {
+        lp.free(objs[randomPos[i]]);
+    }
+    printToFile(f, "TestObject", start, true, name);
+}
+#endif
 
 /**
    Allocates a number of TestObjects on the heap and deallocates
@@ -82,5 +107,13 @@ int main(int argc, char *argv[]) {
     {
         benchPool<LinkedPool3>(BOUND, f, randomPos, "LinkedPool3");
     }
+    {
+        benchPool<MemoryPool>(BOUND, f, randomPos, "MemoryPool");
+    }
+#ifdef INCLUDE_BOOST
+    {
+        benchPool<boost::object_pool>(BOUND, f, randomPos, "boost::object_pool");
+    }
+#endif
     return 0;
 }

@@ -1,18 +1,11 @@
-#ifndef __GLOBAL_LINKED_POOL_H__
-#define __GLOBAL_LINKED_POOL_H__
+#ifndef __NS_GLOBAL_LINKED_POOL_H__
+#define __NS_GLOBAL_LINKED_POOL_H__
 
 #include "Node.h"
 
 extern "C" {
 #include "avltree/avl_utils.h"
 }
-
-#ifdef __x86_64
-#include "tools/light_lock.h"
-#else
-#include <mutex>
-#include <thread>
-#endif
 
 namespace efficient_pools {
 
@@ -48,7 +41,7 @@ struct PoolHeaderG {
    It works by allocating pools in chunks of PAGE_SIZE which makes deallocation
    very quick.
  */
-class GlobalLinkedPool {
+class NSGlobalLinkedPool {
 public:
     static const size_t PAGE_SIZE;
     // mask which is used to get the PoolHeader in constant time
@@ -58,8 +51,8 @@ public:
        Creates a GlobalLinkedPool allocator that will allocate objects of the
        given size in pools and return pointers to them.
      */
-    GlobalLinkedPool();
-    GlobalLinkedPool(size_t t_sizeOfObjects);
+    NSGlobalLinkedPool();
+    NSGlobalLinkedPool(size_t t_sizeOfObjects);
 
     /**
        Allocates space for an object of size N in one of the free slots
@@ -83,11 +76,6 @@ public:
 
 private:
     avl_tree m_freePools;
-#ifdef __x86_64
-    light_lock_t m_poolLock;
-#else
-    std::mutex m_poolLock;
-#endif
     const size_t m_sizeOfObjects;
     const size_t m_poolSize;
     Pool m_freePool;
@@ -100,4 +88,4 @@ private:
     void* nextFree(Pool t_ptr);
 };
 }
-#endif // __GLOBAL_LINKED_POOL_H__
+#endif // __NS_GLOBAL_LINKED_POOL_H__

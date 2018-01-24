@@ -5,6 +5,10 @@
 
 #include "Utility.h"
 #include "unit_test/TestObject.h"
+#ifdef INCLUDE_BOOST
+#include <boost/pool/object_pool.hpp>
+#endif
+#include "pool_allocators/MemoryPool.h"
 #include "pool_allocators/LinkedPool.h"
 #include "pool_allocators/LinkedPool3.h"
 
@@ -82,6 +86,63 @@ void benchPool(size_t BOUND, std::ofstream& f,
     printToFile2(f, "TestObject", dealloc, true, name);
 }
 
+#ifdef INCLUDE_BOOST
+template<template <typename, typename> class T>
+float allocateN(size_t num, vector<TestObject*>& vec,
+                T<TestObject, boost::default_user_allocator_malloc_free>& lp) {
+    std::clock_t start = std::clock();
+    for (size_t i = 0; i < num; ++i) {
+        vec.push_back((TestObject*) lp.malloc());
+    }
+    return (std::clock() - start) / (double)(CLOCKS_PER_SEC / 1000);
+}
+
+template<template <typename, typename> class T>
+float deallocateN(size_t num, vector<TestObject*>& vec,
+                  T<TestObject, boost::default_user_allocator_malloc_free>& lp) {
+    std::clock_t start = std::clock();
+    for (size_t i = 0; i < num; ++i) {
+        lp.free(vec.back());
+        vec.pop_back();
+    }
+    return (std::clock() - start) / (double)(CLOCKS_PER_SEC / 1000);
+}
+
+template<template <typename, typename> class T>
+void benchPool(size_t BOUND, std::ofstream& f,
+               size_t five, size_t ten,
+               const std::string& name) {
+    T<TestObject, boost::default_user_allocator_malloc_free> lp;
+    vector<TestObject*> objs;
+
+    float alloc = 0.0f;
+    float dealloc = 0.0f;
+
+    alloc += allocateN(ten, objs, lp);
+    dealloc += deallocateN(five, objs, lp);
+    alloc += allocateN(five, objs, lp);
+    dealloc += deallocateN(five, objs, lp);
+
+    alloc += allocateN(ten, objs, lp);
+    dealloc += deallocateN(five, objs, lp);
+    alloc += allocateN(five, objs, lp);
+    dealloc += deallocateN(five, objs, lp);
+
+    dealloc += deallocateN(ten, objs, lp);
+    alloc += allocateN(five, objs, lp);
+    alloc += allocateN(five, objs, lp);
+    dealloc += deallocateN(five, objs, lp);
+
+    alloc += allocateN(five, objs, lp);
+    dealloc += deallocateN(five, objs, lp);
+    alloc += allocateN(five, objs, lp);
+    dealloc += deallocateN(ten, objs, lp);
+
+    printToFile2(f, "TestObject", alloc, false, name);
+    printToFile2(f, "TestObject", dealloc, true, name);
+}
+#endif
+
 /**
    Allocates and deallocates a number of TestObjects on the heap in a certain order.
    Allocation and deallocation is done with both new/delete and LinkedPools.
@@ -139,5 +200,13 @@ int main(int argc, char *argv[]) {
     {
         benchPool<LinkedPool3>(BOUND, f, five, ten, "LinkedPool3");
     }
+    {
+        benchPool<MemoryPool>(BOUND, f, five, ten, "MemoryPool");
+    }
+#ifdef INCLUDE_BOOST
+    {
+        benchPool<boost::object_pool>(BOUND, f, five, ten, "boost::object_pool");
+    }
+#endif
     return 0;
 }
