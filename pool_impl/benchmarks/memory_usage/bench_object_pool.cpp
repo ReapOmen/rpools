@@ -1,7 +1,7 @@
 #include <string>
 
 #include "unit_test/TestObject.h"
-#include "pool_allocators/object_pool.hpp"
+#include <boost/pool/object_pool.hpp>
 using boost::object_pool;
 
 #include <vector>

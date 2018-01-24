@@ -57,10 +57,10 @@ inline void* custom_new_no_throw(size_t size) {
         size = remainder == 0 ? size : (size + __mod) & ~__mod;
         auto& poolAlloc = __allocators[getAllocatorsIndex(size)];
         if (poolAlloc) {
-            size_t poolSize = poolAlloc->getNumOfPools();
+            size_t poolSize = poolAlloc->getNumberOfPools();
             // our pool was already created, just use it
             void* toRet = poolAlloc->allocate();
-            if (poolAlloc->getNumOfPools() > poolSize) {
+            if (poolAlloc->getNumberOfPools() > poolSize) {
                 ac.addAllocation(__usablePoolSize);
                 ac.addOverhead(sizeof(PoolHeaderG));
             }
@@ -105,9 +105,9 @@ inline void custom_delete(void* ptr) throw() {
         // convert the size to an index of the allocators vector
         // by dividing it to sizeof(void*)
         auto pool =__allocators[getAllocatorsIndex(ph.sizeOfObjects)].get();
-        size_t numOfPools = pool->getNumOfPools();
+        size_t numOfPools = pool->getNumberOfPools();
         pool->deallocate(ptr);
-        if (numOfPools > pool->getNumOfPools()) {
+        if (numOfPools > pool->getNumberOfPools()) {
             ac.removeObject(ph.sizeOfObjects);
             ac.removeAllocation(__usablePoolSize);
             ac.removeOverhead(sizeof(PoolHeaderG));

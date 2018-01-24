@@ -6,6 +6,10 @@
 using efficient_pools::GlobalLinkedPool;
 using efficient_pools::PoolHeaderG;
 
+#include <thread>
+#include <mutex>
+#include <vector>
+
 void test_pool_size(size_t size) {
     GlobalLinkedPool glp(size);
     size_t expectedSize = (GlobalLinkedPool::PAGE_SIZE -
@@ -14,7 +18,7 @@ void test_pool_size(size_t size) {
 }
 
 TEST_CASE("Pool size of LinkedPool is correct for different objects",
-          "[LinkedPool]") {
+          "[GlobalLinkedPool]") {
     SECTION("Pool size for TestObject") {
         test_pool_size(sizeof(TestObject));
     }
@@ -47,7 +51,7 @@ void test_allocation_1() {
 
 // where P is LinkedPool.getPoolSize()
 TEST_CASE("Allocating P objects returns correct pointers",
-          "[LinkedPool]") {
+          "[GlobalLinkedPool]") {
     SECTION("Allocate TestObjects") {
         test_allocation_1<TestObject>();
     }
@@ -125,7 +129,8 @@ void test_interleaving() {
     }
 }
 
-TEST_CASE("(De)allocation sequence produces correct result", "[LinkedPool]") {
+TEST_CASE("(De)allocation sequence produces correct result",
+          "[GlobalLinkedPool]") {
     SECTION("TestObject") {
         test_interleaving<TestObject>();
     }
@@ -160,11 +165,54 @@ void test_pools_fill_up() {
     }
 }
 
-TEST_CASE("A new pool allocates iff all the other pools are full", "[LinkedPool]") {
+TEST_CASE("A new pool allocates iff all the other pools are full",
+          "[GlobalLinkedPool]") {
     SECTION("TestObject") {
         test_pools_fill_up<TestObject>();
     }
     SECTION("TestObject2") {
         test_pools_fill_up<TestObject2>();
+    }
+}
+
+template<typename T>
+void performAllocAndDealloc(GlobalLinkedPool& lp, std::mutex& mtx) {
+    size_t BOUND = 100000;
+    std::vector<T*> ptrs(BOUND);
+    for (size_t i = 0; i < BOUND; ++i) {
+        ptrs[i] = new (lp.allocate()) T();
+        ptrs[i]->x += i;
+    }
+    for (size_t i = 0; i < BOUND; ++i) {
+        std::unique_lock<std::mutex> lock(mtx);
+        REQUIRE(ptrs[i]->x == i);
+        lock.unlock();
+        lp.deallocate(ptrs[i]);
+    }
+}
+
+template<typename T>
+void test_pools_are_syncrhonized() {
+    int threadsNo = 5;
+    std::mutex mtx;
+    GlobalLinkedPool lp(sizeof(T));
+    std::vector<std::thread> threads(threadsNo);
+    for (int i = 0; i < threadsNo; ++i) {
+        threads[i] = std::thread(performAllocAndDealloc<T>,
+                                 std::ref(lp),
+                                 std::ref(mtx));
+    }
+    for(int i = 0; i < threadsNo; ++i) {
+        threads[i].join();
+    }
+    REQUIRE(lp.getNumberOfPools() == 0);
+}
+
+TEST_CASE("Pools are synchronized", "[GlobalLinkedPool]") {
+    SECTION("TestObject") {
+        test_pools_are_syncrhonized<TestObject>();
+    }
+    SECTION("TestObject2") {
+        test_pools_are_syncrhonized<TestObject2>();
     }
 }

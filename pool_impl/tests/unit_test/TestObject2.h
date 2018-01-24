@@ -1,12 +1,16 @@
 #ifndef __TEST_OBJECT_2_H__
 #define __TEST_OBJECT_2_H__
 
+#include <cstddef>
+
 class TestObject2 {
-    int x, y, z, a, b, c;
+public:
+    size_t x;
+    int z, a, b, c;
+private:
     float w, w1, w2;
     virtual void print() {
         (void)x;
-        (void)y;
         (void)z;
         (void)a;
         (void)b;

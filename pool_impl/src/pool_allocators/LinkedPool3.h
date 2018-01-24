@@ -72,6 +72,8 @@ public:
 
     size_t getPoolSize() { return m_poolSize; }
 
+    size_t getNumberOfPools() { return pool_count(&m_freePools); }
+
 private:
     avl_tree m_freePools;
 #ifdef __x86_64

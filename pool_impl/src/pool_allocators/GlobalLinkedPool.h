@@ -77,7 +77,7 @@ public:
     void deallocate(void* t_ptr);
 
     size_t getPoolSize() const { return m_poolSize; }
-    size_t getNumOfPools() const { return pool_count(&m_freePools); }
+    size_t getNumberOfPools() const { return pool_count(&m_freePools); }
 
     static const PoolHeaderG& getPoolHeader(void* t_ptr);
 
