@@ -1,3 +1,24 @@
+/**
+ *  @file bench_random_order.cpp
+ *  Allocates a number of `TestObject`s on the heap and deallocates
+ *  them in a random order. Allocation and deallocation is done
+ *  with both `new/delete`, `LinkedPools`, `MemoryPool` and
+ *  `boost::object_pool`.
+ *  @par
+ *  A command line argument can be passed to set the number of `TestObject`s
+ *  that will be created and destroyed.
+ *  The results will be written to a file called **random_time_taken.output** and
+ *  it will be of the form:
+ *    ```
+ *    Allocating <ARG> objects.
+ *    Allocate TestObject normally: X ms
+ *    Deallocate TestObject normally: Y ms
+ *    Allocate TestObject with LinkedPool: X1 ms
+ *    Deallocate TestObject with LinkedPool: Y1 ms
+ *    ...
+ *    ```
+ */
+
 #include <vector>
 #include <algorithm>
 #include <random>
@@ -16,20 +37,32 @@ using efficient_pools::LinkedPool;
 using efficient_pools3::LinkedPool3;
 using std::vector;
 
+/**
+ *  Allocate and deallocate a number of `TestObject`s by using a pool allocator.
+ *  The deallocation sequence is determined by the `randomPos` vector.
+ *  @note
+ *  The allocation and deallocation times are recorded and written to a file.
+ *  @tparam T the type of the pool allocator
+ *  @param bound the number of (de)allocations
+ *  @param f the file in which the output is written
+ *  @param randomPos the order in which the objects are deallocated
+ *  @param name the name of the pool allocator which (de)allocates
+ *              `TestObject`s
+ */
 template<template <typename> class T>
-void benchPool(size_t BOUND, std::ofstream& f,
-               const vector<size_t>& randomPos, const std::string& name) {
+void benchPool(size_t bound, std::ofstream& f,
+               const vector<size_t>& randomPos,
+               const std::string& name) {
     T<TestObject> lp;
-    vector<TestObject*> objs;
-    objs.reserve(BOUND);
+    vector<TestObject*> objs(bound);
     std::clock_t start = std::clock();
-    for (size_t i = 0; i < BOUND; ++i) {
-        objs.push_back((TestObject*) lp.allocate());
+    for (size_t i = 0; i < bound; ++i) {
+        objs[i] = reinterpret_cast<TestObject*>(lp.allocate());
     }
     printToFile(f, "TestObject", start, false, name);
 
     start = std::clock();
-    for (size_t i = 0; i < BOUND; ++i) {
+    for (size_t i = 0; i < bound; ++i) {
         lp.deallocate(objs[randomPos[i]]);
     }
     printToFile(f, "TestObject", start, true, name);
@@ -37,40 +70,25 @@ void benchPool(size_t BOUND, std::ofstream& f,
 
 #ifdef INCLUDE_BOOST
 template<template <typename, typename> class T>
-void benchPool(size_t BOUND, std::ofstream& f,
-               const vector<size_t>& randomPos, const std::string& name) {
+void benchPool(size_t bound, std::ofstream& f,
+               const vector<size_t>& randomPos,
+               const std::string& name) {
     T<TestObject, boost::default_user_allocator_malloc_free> lp;
-    vector<TestObject*> objs;
-    objs.reserve(BOUND);
+    vector<TestObject*> objs(bound);
     std::clock_t start = std::clock();
-    for (size_t i = 0; i < BOUND; ++i) {
-        objs.push_back((TestObject*) lp.malloc());
+    for (size_t i = 0; i < bound; ++i) {
+        objs[i] = reinterpret_cast<TestObject*>(lp.malloc());
     }
     printToFile(f, "TestObject", start, false, name);
 
     start = std::clock();
-    for (size_t i = 0; i < BOUND; ++i) {
+    for (size_t i = 0; i < bound; ++i) {
         lp.free(objs[randomPos[i]]);
     }
     printToFile(f, "TestObject", start, true, name);
 }
 #endif
 
-/**
-   Allocates a number of TestObjects on the heap and deallocates
-   them in a random order. Allocation and deallocation is done
-   with both new/delete and LinkedPools.
-   A command line argument can be passed to set the number of TestObjects
-   that will be created and destroyed.
-   The results will be written to a file called `random_time_taken.output' and
-   it will be of the form:
-     Allocating <ARG> objects.
-     Allocate TestObject normally: X ms
-     Deallocate TestObject normally: Y ms
-     Allocate TestObject with LinkedPool: X1 ms
-     Deallocate TestObject with LinkedPool: Y1 ms
-     ...
- */
 int main(int argc, char *argv[]) {
     size_t BOUND = argc > 1 ? std::stoul(argv[1]) : 10000;
     size_t SEED = std::chrono::system_clock::now().time_since_epoch().count();
@@ -79,19 +97,17 @@ int main(int argc, char *argv[]) {
     f << "Allocating " << BOUND << " objects." << std::endl;
 
     // random deallocation indices
-    vector<size_t> randomPos;
-    randomPos.reserve(BOUND);
+    vector<size_t> randomPos(BOUND);
     for (size_t i = 0; i < BOUND; ++i) {
-        randomPos.push_back(i);
+        randomPos[i] = i;
     }
     std::shuffle(randomPos.begin(), randomPos.end(), std::default_random_engine(SEED));
 
     {
-        vector<TestObject*> objs;
-        objs.reserve(BOUND);
+        vector<TestObject*> objs(BOUND);
         std::clock_t start = std::clock();
         for (size_t i = 0; i < BOUND; ++i) {
-            objs.push_back(new TestObject());
+            objs[i] = new TestObject();
         }
         printToFile(f, "TestObject", start, false, "Regular");
 
