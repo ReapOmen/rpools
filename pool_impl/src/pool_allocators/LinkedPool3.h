@@ -93,6 +93,8 @@ private:
 #else
     std::mutex m_poolLock;
 #endif
+    size_t m_headerPadding;
+    size_t m_slotSize;
     const size_t m_poolSize;
     Pool m_freePool;
 
@@ -122,8 +124,20 @@ LinkedPool3<T>::LinkedPool3()
           LIGHT_LOCK_INIT
 #endif
       ),
-      m_poolSize((PAGE_SIZE - sizeof(PoolHeader)) / sizeof(T)),
+      m_headerPadding(0),
+      m_slotSize(sizeof(T)),
+      m_poolSize((PAGE_SIZE - sizeof(PoolHeader)) / m_slotSize),
       m_freePool(nullptr) {
+    // make sure the first slot starts at a proper alignment
+    size_t diff = m_headerPadding % alignof(T);
+    if (diff != 0) {
+        m_headerPadding += alignof(T) - diff;
+    }
+    // make sure that slots are properly aligned
+    diff = m_slotSize % alignof(T);
+    if (diff != 0) {
+        m_slotSize += alignof(T) - diff;
+    }
 }
 
 template<typename T>
@@ -191,11 +205,13 @@ void LinkedPool3<T>::deallocate(void* t_ptr) {
 template<typename T>
 void LinkedPool3<T>::constructPoolHeader(Pool t_ptr) {
     PoolHeader* header = new (t_ptr) PoolHeader();
-    T* first = reinterpret_cast<T*>(header + 1);
+    char* first = reinterpret_cast<char*>(header + 1);
+    first += m_headerPadding;
     header->head.next = reinterpret_cast<Node*>(first);
     for (size_t i = 0; i < m_poolSize - 1; ++i) {
         Node* node = new (first) Node();
-        node->next = reinterpret_cast<Node*>(++first);
+        first += m_slotSize;
+        node->next = reinterpret_cast<Node*>(first);
     }
     new (first) Node();
 }
