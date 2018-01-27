@@ -1,6 +1,14 @@
 #include <ctime>
 #include <fstream>
 
+/**
+ *  Writes a certain message to a given file.
+ *  @param f - the file in which the message is written
+ *  @nameOfobject - the name of the object printed
+ *  @timeTaken - the number of ms it took to (de)allocate the object
+ *  @isDealloc - is it a deallocation or an allocation
+ *  @name - the name of the allocator
+ */
 void printToFile2(std::ofstream& f,
                  const std::string& nameOfObject,
                  float timeTaken,
@@ -11,7 +19,14 @@ void printToFile2(std::ofstream& f,
       << timeTaken << " ms" << std::endl;
 }
 
-
+/**
+ *  Writes a certain message to a given file.
+ *  @param f - the file in which the message is written
+ *  @nameOfobject - the name of the object printed
+ *  @start - the starting time of the computation
+ *  @isDealloc - is it a deallocation or an allocation
+ *  @name - the name of the allocator
+ */
 void printToFile(std::ofstream& f,
                  const std::string& nameOfObject,
                  const std::clock_t& start,

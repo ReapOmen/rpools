@@ -1,3 +1,25 @@
+/**
+ *  @file bench_normal_order.cpp
+ *  Allocates a number of `TestObject`s on the heap and deallocates
+ *  them in the same order.
+ *  Allocation and deallocation is done with both `new/delete`, `LinkedPools`
+ *  `MemoryPool` and `boost::object_pool`.
+ *  @par
+ *  A command line argument can be passed to set the number of `TestObject`s
+ *  that will be created and destroyed.
+ *  @par
+ *  The results will be written to a file called **normal_time_taken.output** and
+ *  it will be of the form: <br>
+ *    ```
+ *    Allocating <ARG> objects.
+ *    Allocate TestObject normally: X ms
+ *    Deallocate TestObject normally: Y ms
+ *    Allocate TestObject with LinkedPool: X1 ms
+ *    Deallocate TestObject with LinkedPool: Y1 ms
+ *    ...
+ *    ```
+ */
+
 #include <vector>
 #include <string>
 #include <iostream>
@@ -14,79 +36,68 @@
 using efficient_pools::LinkedPool;
 using efficient_pools3::LinkedPool3;
 
+/**
+ *  Allocate and deallocate a number of `TestObject`s by using a pool allocator.
+ *  @note
+ *  The allocation and deallocation times are recorded and written to a file.
+ *  @tparam T the type of the pool allocator
+ *  @param bound the number of (de)allocations
+ *  @param f the file in which the output is written
+ *  @param name the name of the pool allocator which (de)allocates
+ *                `TestObject`s
+ */
 template<template <typename> class T>
-void benchPool(size_t BOUND, std::ofstream& f, const std::string& name) {
+void benchPool(size_t bound, std::ofstream& f, const std::string& name) {
     T<TestObject> lp;
-    std::vector<TestObject*> objs;
-    objs.reserve(BOUND);
+    std::vector<TestObject*> objs(bound);
     std::clock_t start = std::clock();
-    for (size_t i = 0; i < BOUND; ++i) {
-        objs.push_back((TestObject*) lp.allocate());
+    for (size_t i = 0; i < bound; ++i) {
+        objs[i] = reinterpret_cast<TestObject*>(lp.allocate());
     }
     printToFile(f, "TestObject", start, false, name);
 
     start = std::clock();
-    for (size_t i = 0; i < BOUND; ++i) {
-        lp.deallocate(objs.back());
-        objs.pop_back();
+    for (size_t i = 0; i < bound; ++i) {
+        lp.deallocate(objs[i]);
     }
     printToFile(f, "TestObject", start, true, name);
 }
 
 #ifdef INCLUDE_BOOST
 template<template <typename, typename> class T>
-void benchPool(size_t BOUND, std::ofstream& f, const std::string& name) {
-    T<TestObject, boost::default_user_allocator_malloc_free> lp;
-    std::vector<TestObject*> objs;
-    objs.reserve(BOUND);
+void benchPool(size_t bound, std::ofstream& f, const std::string& name) {
+    T<TestObject, boost::default_user_allocator_malloc_free> bp;
+    std::vector<TestObject*> objs(bound);
     std::clock_t start = std::clock();
-    for (size_t i = 0; i < BOUND; ++i) {
-        objs.push_back((TestObject*) lp.malloc());
+    for (size_t i = 0; i < bound; ++i) {
+        objs[i] = reinterpret_cast<TestObject*>(bp.malloc());
     }
     printToFile(f, "TestObject", start, false, name);
 
     start = std::clock();
-    for (size_t i = 0; i < BOUND; ++i) {
-        lp.free(objs.back());
-        objs.pop_back();
+    for (size_t i = 0; i < bound; ++i) {
+        bp.free(objs[i]);
     }
     printToFile(f, "TestObject", start, true, name);
 }
 #endif
 
-/**
-   Allocates a number of TestObjects on the heap and deallocates
-   them in reverse order of insertion.
-   Allocation and deallocation is done with both new/delete and LinkedPools.
-   A command line argument can be passed to set the number of TestObjects
-   that will be created and destroyed.
-   The results will be written to a file called `normal_time_taken.output' and
-   it will be of the form:
-     Allocating <ARG> objects.
-     Allocate TestObject normally: X ms
-     Deallocate TestObject normally: Y ms
-     Allocate TestObject with LinkedPool: X1 ms
-     Deallocate TestObject with LinkedPool: Y1 ms
-     ...
- */
 int main(int argc, char *argv[]) {
     size_t BOUND = argc > 1 ? std::stoul(argv[1]) : 10000;
 
     std::ofstream f("normal_time_taken.output");
     f << "Allocating " << BOUND << " objects." << std::endl;
     {
-        std::vector<TestObject*> objs;
-        objs.reserve(BOUND);
+        std::vector<TestObject*> objs(BOUND);
         std::clock_t start = std::clock();
         for (size_t i = 0; i < BOUND; ++i) {
-            objs.push_back(new TestObject());
+            objs[i] = new TestObject();
         }
         printToFile(f, "TestObject", start, false, "Regular");
 
         start = std::clock();
         for (size_t i = 0; i < BOUND; ++i) {
-            delete objs.back();
-            objs.pop_back();
+            delete objs[i];
         }
         printToFile(f, "TestObject", start, true, "Regular");
     }

@@ -132,7 +132,7 @@ inline void custom_delete(void* t_ptr) throw() {
         const PoolHeaderG& ph = NSGlobalLinkedPool::getPoolHeader(t_ptr);
         // convert the size to an index of the allocators vector
         // by dividing it to sizeof(void*)
-        __allocators[getAllocatorsIndex(ph.sizeOfObjects)]
+        __allocators[getAllocatorsIndex(ph.sizeOfSlot)]
             ->deallocate(t_ptr);
     }
 #ifdef __x86_64

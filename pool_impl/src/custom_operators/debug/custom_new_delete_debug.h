@@ -104,11 +104,11 @@ inline void custom_delete(void* ptr) throw() {
     else {
         // convert the size to an index of the allocators vector
         // by dividing it to sizeof(void*)
-        auto pool =__allocators[getAllocatorsIndex(ph.sizeOfObjects)].get();
+        auto pool =__allocators[getAllocatorsIndex(ph.sizeOfSlot)].get();
         size_t numOfPools = pool->getNumberOfPools();
         pool->deallocate(ptr);
         if (numOfPools > pool->getNumberOfPools()) {
-            ac.removeObject(ph.sizeOfObjects);
+            ac.removeObject(ph.sizeOfSlot);
             ac.removeAllocation(__usablePoolSize);
             ac.removeOverhead(sizeof(PoolHeaderG));
         }

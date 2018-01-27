@@ -42,7 +42,7 @@ TEST_CASE("Allocations between 0 and 128 bytes use GlobalLinkedPool",
 
             // offset of a certain multiple between each element and the
             // first allocated element
-            REQUIRE(((size_t)ptr - (size_t)first) % h.sizeOfObjects == 0);
+            REQUIRE(((size_t)ptr - (size_t)first) % h.sizeOfSlot == 0);
         }
     }
 }
@@ -63,10 +63,10 @@ TEST_CASE("Pointers to objects of size < 129 are deallocated using GlobalLinkedP
             index = i - 2;
         } else {
             size_t oldSize =
-                NSGlobalLinkedPool::getPoolHeader(allocs[i-1]).sizeOfPool;
+                NSGlobalLinkedPool::getPoolHeader(allocs[i-1]).occupiedSlots;
             custom_delete(allocs[i-1]);
             REQUIRE(oldSize - 1 ==
-                    NSGlobalLinkedPool::getPoolHeader(allocs[index]).sizeOfPool);
+                    NSGlobalLinkedPool::getPoolHeader(allocs[index]).occupiedSlots);
         }
     }
 }

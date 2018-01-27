@@ -52,7 +52,7 @@ void NSGlobalLinkedPool::deallocate(void* t_ptr) {
     PoolHeaderG* pool = reinterpret_cast<PoolHeaderG*>(
         reinterpret_cast<size_t>(t_ptr) & POOL_MASK
     );
-    if (pool->sizeOfPool == 1) {
+    if (pool->occupiedSlots == 1) {
         pool_remove(&m_freePools, pool);
         free(pool);
         m_freePool = pool_first(&m_freePools);
@@ -63,7 +63,7 @@ void NSGlobalLinkedPool::deallocate(void* t_ptr) {
         newNode->next = head.next;
         head.next = newNode;
         m_freePool = pool;
-        if (--(pool->sizeOfPool) == m_poolSize - 1) {
+        if (--(pool->occupiedSlots) == m_poolSize - 1) {
             pool_insert(&m_freePools, pool);
         }
     }
@@ -92,7 +92,7 @@ void* NSGlobalLinkedPool::nextFree(Pool pool) {
     void* toReturn = head.next;
     if (toReturn) {
         head.next = head.next->next;
-        if (++(header->sizeOfPool) == m_poolSize) {
+        if (++(header->occupiedSlots) == m_poolSize) {
             pool_remove(&m_freePools, pool);
             m_freePool = pool_first(&m_freePools);
         }
