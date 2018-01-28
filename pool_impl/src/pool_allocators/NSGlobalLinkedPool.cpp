@@ -13,20 +13,28 @@ const size_t NSGlobalLinkedPool::POOL_MASK = ~0 >>
     (size_t) std::log2(NSGlobalLinkedPool::PAGE_SIZE)
     << (size_t) std::log2(NSGlobalLinkedPool::PAGE_SIZE);
 
-NSGlobalLinkedPool::NSGlobalLinkedPool()
+NSGlobalLinkedPool::NSGlobalLinkedPool(size_t t_sizeOfObjects,
+                                       size_t t_alignment)
     : m_freePools(),
-      m_sizeOfObjects(8),
-      m_poolSize((PAGE_SIZE - sizeof(PoolHeaderG)) / m_sizeOfObjects),
+      m_sizeOfObjects(t_sizeOfObjects < sizeof(Node) ?
+                      sizeof(Node) : t_sizeOfObjects),
+      m_headerPadding(0),
+      m_slotSize(m_sizeOfObjects),
+      m_poolSize(0),
       m_freePool(nullptr) {
     avl_init(&m_freePools, NULL);
-}
-
-NSGlobalLinkedPool::NSGlobalLinkedPool(size_t t_sizeOfObjects)
-    : m_freePools(),
-      m_sizeOfObjects(t_sizeOfObjects < sizeof(Node) ? sizeof(Node) : t_sizeOfObjects),
-      m_poolSize((PAGE_SIZE - sizeof(PoolHeaderG)) / m_sizeOfObjects),
-      m_freePool(nullptr) {
-    avl_init(&m_freePools, NULL);
+    // make sure the first slot starts at a proper alignment
+    size_t diff = sizeof(PoolHeaderG) % t_alignment;
+    if (diff != 0) {
+        m_headerPadding += t_alignment - diff;
+    }
+    // make sure that slots are properly aligned
+    diff = m_slotSize % t_alignment;
+    if (diff != 0) {
+        m_slotSize += t_alignment - diff;
+    }
+    m_poolSize = (PAGE_SIZE - sizeof(PoolHeaderG) - m_headerPadding) /
+        m_slotSize;
 }
 
 void* NSGlobalLinkedPool::allocate() {
@@ -70,8 +78,9 @@ void NSGlobalLinkedPool::deallocate(void* t_ptr) {
 }
 
 void NSGlobalLinkedPool::constructPoolHeader(char* t_ptr) {
-    // first slot after the header
-    Node* headNext = reinterpret_cast<Node*>(sizeof(PoolHeaderG) + t_ptr);
+    // first slot after the header that is also aligned
+    Node* headNext = reinterpret_cast<Node*>(sizeof(PoolHeaderG) +
+                                             t_ptr + m_headerPadding);
     // create the header at the start of the pool
     new (t_ptr) PoolHeaderG(m_sizeOfObjects, headNext);
     // skip the header
@@ -79,7 +88,7 @@ void NSGlobalLinkedPool::constructPoolHeader(char* t_ptr) {
     // for each slot in the pool, create a node that is linked to the next slot
     for (size_t i = 0; i < m_poolSize - 1; ++i) {
         Node* newNode = new (t_ptr) Node();
-        t_ptr += m_sizeOfObjects;
+        t_ptr += m_slotSize;
         newNode->next = reinterpret_cast<Node*>(t_ptr);
     }
     // create last node of the list, which isn't linked to anything

@@ -1,7 +1,7 @@
 #ifndef __NS_GLOBAL_LINKED_POOL_H__
 #define __NS_GLOBAL_LINKED_POOL_H__
 
-#include "Node.h"
+#include "PoolHeaderG.h"
 
 extern "C" {
 #include "avltree/avl_utils.h"
@@ -10,23 +10,6 @@ extern "C" {
 namespace efficient_pools {
 
 using Pool = void*;
-
-struct PoolHeaderG {
-    size_t occupiedSlots;
-    size_t sizeOfSlot;
-    Node head;
-
-    PoolHeaderG(size_t t_sizeOfSlot, Node* t_next)
-        : occupiedSlots(0), sizeOfSlot(t_sizeOfSlot), head(t_next) {
-
-    }
-
-    bool operator ==(const PoolHeaderG& other) const {
-        return occupiedSlots == other.occupiedSlots &&
-            sizeOfSlot == other.sizeOfSlot &&
-            head.next == other.head.next;
-    }
-};
 
 /**
  *  A thread unsafe version of `GlobalLinkedPool`.
@@ -37,8 +20,8 @@ public:
     static const size_t PAGE_SIZE;
     static const size_t POOL_MASK;
 
-    NSGlobalLinkedPool();
-    NSGlobalLinkedPool(size_t t_sizeOfObjects);
+    NSGlobalLinkedPool(size_t t_sizeOfObjects=sizeof(Node),
+                       size_t alignment=alignof(max_align_t));
 
     void* allocate();
     void deallocate(void* t_ptr);
@@ -49,7 +32,9 @@ public:
 private:
     avl_tree m_freePools;
     const size_t m_sizeOfObjects;
-    const size_t m_poolSize;
+    size_t m_headerPadding;
+    size_t m_slotSize;
+    size_t m_poolSize;
     Pool m_freePool;
 
     void constructPoolHeader(char* t_ptr);

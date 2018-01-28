@@ -6,11 +6,10 @@
 
 #include "tools/mallocator.h"
 #include "tools/FreeDeleter.h"
-#include "pool_allocators//GlobalLinkedPool.h"
+#include "pool_allocators/GlobalLinkedPool.h"
 
 namespace {
     using efficient_pools::GlobalLinkedPool;
-    using efficient_pools::PoolHeaderG;
 
     const size_t __threshold = 128; // malloc performs equally well
                                     // on objects of size > 128

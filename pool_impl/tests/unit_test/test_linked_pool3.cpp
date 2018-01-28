@@ -36,12 +36,14 @@ void test_allocation_1() {
     size_t size = lp.getPoolSize();
     vector<T*> objs(size);
     objs[0] = new (lp.allocate()) T();
+    REQUIRE((size_t)objs[0] % alignof(T) == 0);
     for (size_t i = 1; i < size; ++i) {
         objs[i] = new (lp.allocate()) T();
         // all objects are part of the same pool
         // so the 3rd object will be 2 slots away from
         // the first one and so on for all objects
         REQUIRE(objs[i] == objs[0] + i);
+        REQUIRE((size_t)objs[i] % alignof(T) == 0);
     }
     // clean up
     for (auto obj : objs) {
