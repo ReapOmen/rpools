@@ -4,7 +4,6 @@
 using std::vector;
 
 #include "custom_operators/custom_new_delete_v2/custom_new_delete2.h"
-using efficient_pools::PoolHeaderG;
 
 TEST_CASE("Allocations between 0 and 128 bytes use GlobalLinkedPool",
           "[custom_new_delete]") {
@@ -19,10 +18,6 @@ TEST_CASE("Allocations between 0 and 128 bytes use GlobalLinkedPool",
         const auto& hLast = GlobalLinkedPool::getPoolHeader(first);
         const auto& h = GlobalLinkedPool::getPoolHeader(ptr);
         REQUIRE(h == hLast);
-
-        // an offset of 9 is required between each slot
-        char* expected = (char*)first + i * (sizeof(void*) + 1);
-        REQUIRE(reinterpret_cast<void*>(expected) == ptr);
     }
     for (size_t multiple = 1; multiple <= 15; ++multiple) {
         size_t start = sizeof(void*) * multiple;
@@ -39,10 +34,6 @@ TEST_CASE("Allocations between 0 and 128 bytes use GlobalLinkedPool",
             const auto& hLast = GlobalLinkedPool::getPoolHeader(first);
             const auto& h = GlobalLinkedPool::getPoolHeader(ptr);
             REQUIRE(h == hLast);
-
-            // offset of a certain multiple between each element and the
-            // first allocated element
-            REQUIRE(((size_t)ptr - (size_t)first) % h.sizeOfSlot == 0);
         }
     }
 }

@@ -14,7 +14,8 @@ add_test(NAME TestLinkedPool3 COMMAND test_linked_pool3)
 
 # test GlobalLinkedPool
 add_executable(test_global_linked_pool test_global_linked_pool.cpp)
-target_link_libraries(test_global_linked_pool PRIVATE gllinkedpool testrunner)
+target_link_libraries(test_global_linked_pool PRIVATE
+  nsgllinkedpool gllinkedpool testrunner)
 add_test(NAME TestGlobalLinkedPool COMMAND test_global_linked_pool)
 
 # test custom_new_delete.cpp

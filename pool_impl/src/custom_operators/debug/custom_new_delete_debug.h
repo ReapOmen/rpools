@@ -14,7 +14,6 @@
 
 namespace {
     using efficient_pools::GlobalLinkedPool;
-    using efficient_pools::PoolHeaderG;
 
     const size_t __threshold = 128;
 

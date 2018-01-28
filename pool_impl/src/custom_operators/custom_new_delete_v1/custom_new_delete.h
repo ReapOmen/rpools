@@ -3,6 +3,7 @@
 
 #include <cmath>
 #include <vector>
+#include <cstddef>
 
 #include "tools/mallocator.h"
 #include "tools/FreeDeleter.h"
@@ -17,11 +18,11 @@
 
 namespace {
     using efficient_pools::NSGlobalLinkedPool;
-    using efficient_pools::PoolHeaderG;
 
     const size_t __threshold = 128; // malloc performs equally well
                                     // on objects of size > 128
     const size_t __mod = sizeof(void*) - 1;
+    const size_t __modMax = alignof(max_align_t) - 1;
     const size_t __logOfVoid = std::log2(sizeof(void*));
 
     std::vector<
@@ -47,10 +48,12 @@ namespace {
     }
 }
 
-inline void* custom_new_no_throw(size_t t_size) {
-    // use malloc for large sizes
-    if (t_size > __threshold) {
-        void* addr = std::malloc(t_size);
+inline void* custom_new_no_throw(size_t t_size,
+                                 size_t t_alignment=alignof(max_align_t)) {
+    // use malloc for large sizes or if we are dealing with
+    // alignments that are not 2, 4, 8, 16
+    if (alignof(max_align_t) % t_alignment != 0 || t_size > __threshold) {
+        void* addr = aligned_alloc(t_alignment, t_size);
         size_t maskedAddr = reinterpret_cast<size_t>(addr) &
             NSGlobalLinkedPool::POOL_MASK;
         void* page = reinterpret_cast<void*>(maskedAddr);
@@ -72,8 +75,11 @@ inline void* custom_new_no_throw(size_t t_size) {
         return addr;
     } else {
         size_t remainder = t_size & __mod; // t_size % sizeof(void*)
-        // round up to the next multiple of <sizeof(void*)>
+        // round up to the next multiple of sizeof(void*)
         t_size = remainder == 0 ? t_size : (t_size + __mod) & ~__mod;
+        // round up to the next multiple of sizeof(max_align_t)
+        // if t_alignment > sizeof(void*)
+        t_size += (t_alignment & __modMax) == 0 ? sizeof(void*) : 0;
 #ifdef __x86_64
         light_lock(&__lock);
 #else
@@ -81,10 +87,12 @@ inline void* custom_new_no_throw(size_t t_size) {
 #endif
         auto& poolAlloc = __allocators[getAllocatorsIndex(t_size)];
         if (!poolAlloc) {
+            t_alignment = (t_size & __modMax) == 0 ?
+                alignof(max_align_t) : sizeof(void*);
             // create the pool which can hold objects of size <size>
             poolAlloc.reset(
                 new (malloc(sizeof(NSGlobalLinkedPool)))
-                    NSGlobalLinkedPool(t_size)
+                    NSGlobalLinkedPool(t_size, t_alignment)
             );
         }
         void* toRet = poolAlloc->allocate();
@@ -95,8 +103,9 @@ inline void* custom_new_no_throw(size_t t_size) {
     }
 }
 
-inline void* custom_new(size_t t_size) {
-    void* toRet = custom_new_no_throw(t_size);
+inline void* custom_new(size_t t_size,
+                        size_t t_alignment=alignof(max_align_t)) {
+    void* toRet = custom_new_no_throw(t_size, t_alignment);
     if (toRet == nullptr) {
         throw std::bad_alloc();
     }

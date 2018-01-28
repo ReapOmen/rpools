@@ -95,7 +95,7 @@ private:
 #endif
     size_t m_headerPadding;
     size_t m_slotSize;
-    const size_t m_poolSize;
+    size_t m_poolSize;
     Pool m_freePool;
 
     /** Creates a `PoolHeader` at **t_ptr**
@@ -125,11 +125,11 @@ LinkedPool3<T>::LinkedPool3()
 #endif
       ),
       m_headerPadding(0),
-      m_slotSize(sizeof(T)),
-      m_poolSize((PAGE_SIZE - sizeof(PoolHeader)) / m_slotSize),
+      m_slotSize(sizeof(T) < sizeof(Node) ? sizeof(Node) : sizeof(T)),
+      m_poolSize(0),
       m_freePool(nullptr) {
     // make sure the first slot starts at a proper alignment
-    size_t diff = m_headerPadding % alignof(T);
+    size_t diff = sizeof(PoolHeader) % alignof(T);
     if (diff != 0) {
         m_headerPadding += alignof(T) - diff;
     }
@@ -138,6 +138,7 @@ LinkedPool3<T>::LinkedPool3()
     if (diff != 0) {
         m_slotSize += alignof(T) - diff;
     }
+    m_poolSize = (PAGE_SIZE - sizeof(PoolHeader)) / m_slotSize;
 }
 
 template<typename T>

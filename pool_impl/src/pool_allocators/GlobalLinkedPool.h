@@ -1,7 +1,7 @@
 #ifndef __GLOBAL_LINKED_POOL_H__
 #define __GLOBAL_LINKED_POOL_H__
 
-#include "Node.h"
+#include "PoolHeaderG.h"
 
 extern "C" {
 #include "avltree/avl_utils.h"
@@ -17,37 +17,6 @@ extern "C" {
 namespace efficient_pools {
 
 using Pool = void*;
-
-/**
- *  Every pool is allocated on a page boundary.
- *  The `PoolHeader` is placed at the first byte of the page and
- *  contains certain metadata about a pool.
- */
-struct PoolHeaderG {
-    /** Denotes the number of slots that are occupied. */
-    size_t occupiedSlots;
-    /** The size of a pool slot. */
-    size_t sizeOfSlot;
-     /** A `Node` which points to the next free slot of the pool, or
-      *  to nullptr if there are no slots left. */
-    Node head;
-
-    /**
-     *  Create a `PoolHeaderG` with non-default values.
-     *  @param t_sizeOfSlot the size of a slot in the pool
-     *  @param t_next the first empty pool slot
-     */
-    PoolHeaderG(size_t t_sizeOfSlot, Node* t_next)
-        : occupiedSlots(0), sizeOfSlot(t_sizeOfSlot), head(t_next) {
-
-    }
-
-    bool operator ==(const PoolHeaderG& other) const {
-        return occupiedSlots == other.occupiedSlots &&
-            sizeOfSlot == other.sizeOfSlot &&
-            head.next == other.head.next;
-    }
-};
 
 /**
  *  Represents a pool allocator which tries to minimise the amount of memory
@@ -70,17 +39,15 @@ public:
     static const size_t POOL_MASK;
 
     /**
-     *  Creates a `GlobalLinkedPool` allocator that will allocate objects of
-     *  size **8** in pools and return pointers to them.
-     *  @param t_sizeOfObjects the maximum size that a pool slot will have
-     */
-    GlobalLinkedPool();
-    /**
      *  Creates a `GlobalLinkedPool` allocator that will allocate objects of the
      *  given size in pools and return pointers to them.
      *  @param t_sizeOfObjects the maximum size that a pool slot will have
+     *                         (default: sizeof(Node))
+     *  @param t_alignment the alignment of the objects
+     *                     (default: alignof(max_align_t))
      */
-    GlobalLinkedPool(size_t t_sizeOfObjects);
+    GlobalLinkedPool(size_t t_sizeOfObjects=sizeof(Node),
+                     size_t t_alignment=alignof(max_align_t));
 
     /**
      *  Allocates space for an object of size N in one of the free slots
@@ -122,7 +89,9 @@ private:
     std::mutex m_poolLock;
 #endif
     const size_t m_sizeOfObjects;
-    const size_t m_poolSize;
+    size_t m_headerPadding;
+    size_t m_slotSize;
+    size_t m_poolSize;
     Pool m_freePool;
 
     /** @see LinkedPool3::constructPoolHeader */

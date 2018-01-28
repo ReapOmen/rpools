@@ -3,45 +3,54 @@
 #include "TestObject.h"
 #include "TestObject2.h"
 #include "pool_allocators/GlobalLinkedPool.h"
+#include "pool_allocators/NSGlobalLinkedPool.h"
 using efficient_pools::GlobalLinkedPool;
-using efficient_pools::PoolHeaderG;
+using efficient_pools::NSGlobalLinkedPool;
 
 #include <thread>
 #include <mutex>
 #include <vector>
 
-void test_pool_size(size_t size) {
-    GlobalLinkedPool glp(size);
+template<typename P, typename T>
+void test_pool_size() {
+    P glp(sizeof(T), alignof(T));
+    size_t size = sizeof(T);
+    size_t diff = size % alignof(T);
+    if (diff != 0) {
+        size += alignof(T) - diff;
+    }
     size_t expectedSize = (GlobalLinkedPool::PAGE_SIZE -
                            sizeof(PoolHeaderG)) / size;
     REQUIRE(glp.getPoolSize() == expectedSize);
 }
 
-TEST_CASE("Pool size of LinkedPool is correct for different objects",
+TEST_CASE("Pool size of GlobalLinkedPool is correct for different objects",
           "[GlobalLinkedPool]") {
-    SECTION("Pool size for TestObject") {
-        test_pool_size(sizeof(TestObject));
+    SECTION("GLPool size for TestObject") {
+        test_pool_size<GlobalLinkedPool, TestObject>();
     }
-    SECTION("Pool size for TestObject2") {
-        test_pool_size(sizeof(TestObject2));
+    SECTION("GLPool size for TestObject2") {
+        test_pool_size<GlobalLinkedPool, TestObject2>();
+    }
+    SECTION("NSGLPool size for TestObject") {
+        test_pool_size<NSGlobalLinkedPool, TestObject>();
+    }
+    SECTION("NSGLPool size for TestObject2") {
+        test_pool_size<NSGlobalLinkedPool, TestObject2>();
     }
 }
 
 #include <vector>
 using std::vector;
 
-template<typename T>
+template<typename P, typename T>
 void test_allocation_1() {
-    GlobalLinkedPool lp(sizeof(T));
+    P lp(sizeof(T));
     size_t size = lp.getPoolSize();
     vector<T*> objs(size);
-    objs[0] = new (lp.allocate()) T();
-    for (size_t i = 1; i < size; ++i) {
+    for (size_t i = 0; i < size; ++i) {
         objs[i] = new (lp.allocate()) T();
-        // all objects are part of the same pool
-        // so the 3rd object will be 2 slots away from
-        // the first one and so on for all objects
-        REQUIRE(objs[i] == objs[0] + i);
+        REQUIRE((size_t)objs[i] % alignof(T) == 0);
     }
     // clean up
     for (auto obj : objs) {
@@ -53,16 +62,22 @@ void test_allocation_1() {
 TEST_CASE("Allocating P objects returns correct pointers",
           "[GlobalLinkedPool]") {
     SECTION("Allocate TestObjects") {
-        test_allocation_1<TestObject>();
+        test_allocation_1<GlobalLinkedPool, TestObject>();
     }
     SECTION("Allocate TestObject2s") {
-        test_allocation_1<TestObject2>();
+        test_allocation_1<GlobalLinkedPool, TestObject2>();
+    }
+    SECTION("Allocate TestObjects") {
+        test_allocation_1<NSGlobalLinkedPool, TestObject>();
+    }
+    SECTION("Allocate TestObject2s") {
+        test_allocation_1<NSGlobalLinkedPool, TestObject2>();
     }
 }
 
-template<typename T>
+template<typename P, typename T>
 void test_allocation_2() {
-    GlobalLinkedPool lp(sizeof(T));
+    GlobalLinkedPool lp(sizeof(T), alignof(T));
     // allocate two more objects which will get
     // allocated in a second pool
     size_t size = lp.getPoolSize() + 2;
@@ -78,8 +93,6 @@ void test_allocation_2() {
     // only P objects fit in one pool
     REQUIRE(((size_t)objs[size - 2] & GlobalLinkedPool::POOL_MASK)
             != ((size_t)objs[0] & GlobalLinkedPool::POOL_MASK));
-    // last 2 elements are from the same pool (i.e. P+1 and P+2)
-    REQUIRE(objs[size - 2] + 1 == objs[size - 1]);
     // clean up
     for (auto obj : objs) {
         lp.deallocate(obj);
@@ -88,18 +101,24 @@ void test_allocation_2() {
 
 // where P is LinkedPool.getPoolSize()
 TEST_CASE("Allocating more than P objects returns correct pointers",
-          "[LinkedPool]") {
+          "[GlobalLinkedPool]") {
     SECTION("Allocate TestObjects") {
-        test_allocation_2<TestObject>();
+        test_allocation_2<GlobalLinkedPool, TestObject>();
     }
     SECTION("Allocate TestObject2s") {
-        test_allocation_2<TestObject2>();
+        test_allocation_2<GlobalLinkedPool, TestObject2>();
+    }
+    SECTION("Allocate TestObjects") {
+        test_allocation_2<NSGlobalLinkedPool, TestObject>();
+    }
+    SECTION("Allocate TestObject2s") {
+        test_allocation_2<NSGlobalLinkedPool, TestObject2>();
     }
 }
 
-template<typename T>
+template<typename P, typename T>
 void test_interleaving() {
-    GlobalLinkedPool lp(sizeof(T));
+    GlobalLinkedPool lp(sizeof(T), alignof(T));
     // we will allocate 5 objects
     size_t size = 5;
     vector<T*> objs(size);
@@ -120,9 +139,6 @@ void test_interleaving() {
     // which is saved in firstDeallocated
     objs[4] = new (lp.allocate()) T();
     REQUIRE(objs[4] == firstDeallocated);
-    // now head -> 6 -> ...
-    objs.push_back(new (lp.allocate()) T());
-    REQUIRE(objs[5] == objs[0] + 5);
 
     for (size_t i = 0; i < objs.size(); ++i) {
         lp.deallocate(objs[i]);
@@ -132,16 +148,22 @@ void test_interleaving() {
 TEST_CASE("(De)allocation sequence produces correct result",
           "[GlobalLinkedPool]") {
     SECTION("TestObject") {
-        test_interleaving<TestObject>();
+        test_interleaving<GlobalLinkedPool, TestObject>();
     }
     SECTION("TestObject2") {
-        test_interleaving<TestObject2>();
+        test_interleaving<GlobalLinkedPool, TestObject2>();
+    }
+    SECTION("TestObject") {
+        test_interleaving<NSGlobalLinkedPool, TestObject>();
+    }
+    SECTION("TestObject2") {
+        test_interleaving<NSGlobalLinkedPool, TestObject2>();
     }
 }
 
-template<typename T>
+template<typename P, typename T>
 void test_pools_fill_up() {
-    GlobalLinkedPool lp(sizeof(T));
+    GlobalLinkedPool lp(sizeof(T), alignof(T));
     size_t size = lp.getPoolSize() * 2;
     vector<T*> objs(size);
     for (size_t i = 0; i < size; ++i) {
@@ -168,10 +190,16 @@ void test_pools_fill_up() {
 TEST_CASE("A new pool allocates iff all the other pools are full",
           "[GlobalLinkedPool]") {
     SECTION("TestObject") {
-        test_pools_fill_up<TestObject>();
+        test_pools_fill_up<GlobalLinkedPool, TestObject>();
     }
     SECTION("TestObject2") {
-        test_pools_fill_up<TestObject2>();
+        test_pools_fill_up<GlobalLinkedPool, TestObject2>();
+    }
+    SECTION("TestObject") {
+        test_pools_fill_up<NSGlobalLinkedPool, TestObject>();
+    }
+    SECTION("TestObject2") {
+        test_pools_fill_up<NSGlobalLinkedPool, TestObject2>();
     }
 }
 
@@ -195,7 +223,7 @@ template<typename T>
 void test_pools_are_syncrhonized() {
     int threadsNo = 5;
     std::mutex mtx;
-    GlobalLinkedPool lp(sizeof(T));
+    GlobalLinkedPool lp(sizeof(T), alignof(T));
     std::vector<std::thread> threads(threadsNo);
     for (int i = 0; i < threadsNo; ++i) {
         threads[i] = std::thread(performAllocAndDealloc<T>,
