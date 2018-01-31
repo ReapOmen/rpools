@@ -48,8 +48,8 @@ namespace {
     }
 }
 
-inline void* custom_new_no_throw(size_t t_size,
-                                 size_t t_alignment=alignof(max_align_t)) {
+void* custom_new_no_throw(size_t t_size,
+                          size_t t_alignment=alignof(max_align_t)) {
     // use malloc for large sizes or if we are dealing with
     // alignments that are not 2, 4, 8, 16
     if (alignof(max_align_t) % t_alignment != 0 || t_size > __threshold) {
@@ -77,9 +77,14 @@ inline void* custom_new_no_throw(size_t t_size,
         size_t remainder = t_size & __mod; // t_size % sizeof(void*)
         // round up to the next multiple of sizeof(void*)
         t_size = remainder == 0 ? t_size : (t_size + __mod) & ~__mod;
-        // round up to the next multiple of sizeof(max_align_t)
-        // if t_alignment > sizeof(void*)
-        t_size += (t_alignment & __modMax) == 0 ? sizeof(void*) : 0;
+        // adds 8 in the case when a pool of <t_size> cannot accommodate
+        // an allocation request of alignment <t_alignment>
+        // say t_size is 40 and t_alignment is 16
+        // we have defined that pools that are not divisible by
+        // 16, have alignment 8, otherwise 16
+        // 40 % 16 != 0 -> place the request in a pool that holds
+        // objects of size 48 (also note 48 % 16 == 0 -> has an alignment of 16)
+        t_size += (t_size & t_alignment) == 0 ? sizeof(void*) : 0;
 #ifdef __x86_64
         light_lock(&__lock);
 #else
@@ -87,9 +92,12 @@ inline void* custom_new_no_throw(size_t t_size,
 #endif
         auto& poolAlloc = __allocators[getAllocatorsIndex(t_size)];
         if (!poolAlloc) {
+            // all pools of sizes that are mutliples of 8 will have a
+            // default alignment of 8
+            // and all pools of sizes that are multiples of 16 will have an
+            // alignment of 16
             t_alignment = (t_size & __modMax) == 0 ?
                 alignof(max_align_t) : sizeof(void*);
-            // create the pool which can hold objects of size <size>
             poolAlloc.reset(
                 new (malloc(sizeof(NSGlobalLinkedPool)))
                     NSGlobalLinkedPool(t_size, t_alignment)
@@ -103,8 +111,9 @@ inline void* custom_new_no_throw(size_t t_size,
     }
 }
 
-inline void* custom_new(size_t t_size,
-                        size_t t_alignment=alignof(max_align_t)) {
+void* custom_new(size_t t_size,
+                 size_t t_alignment=alignof(max_align_t)) {
+    //cout << "NEW CALLED WITH " << t_size << " " << t_alignment << endl;
     void* toRet = custom_new_no_throw(t_size, t_alignment);
     if (toRet == nullptr) {
         throw std::bad_alloc();
@@ -112,7 +121,7 @@ inline void* custom_new(size_t t_size,
     return toRet;
 }
 
-inline void custom_delete(void* t_ptr) throw() {
+void custom_delete(void* t_ptr) throw() {
     // find out if the pointer was allocated with malloc
     // or within a pool
     size_t addr = reinterpret_cast<size_t>(t_ptr);

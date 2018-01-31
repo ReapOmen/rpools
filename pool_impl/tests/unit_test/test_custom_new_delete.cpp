@@ -43,4 +43,5 @@ TEST_CASE("Weird alignments are correctly accommodated",
     REQUIRE((size_t)custom_new(8) % 16 == 0);
     REQUIRE((size_t)custom_new(120, 32) % 32 == 0);
     REQUIRE((size_t)custom_new(500, 64) % 64 == 0);
+    REQUIRE((size_t)custom_new(48, 16) % 16 == 0);
 }

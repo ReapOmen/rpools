@@ -21,13 +21,16 @@ add_subdirectory(src)
 include_directories(${SRC})
 
 # Prepare "avltree" library for linking
-add_library(avltree ${SRC}/avltree/avltree.c)
+add_library(avltree
+  ${SRC}/avltree/avltree.c
+  ${SRC}/avltree/avl_utils.c)
 set_target_properties(avltree PROPERTIES PUBLIC_HEADER ${SRC}/avltree/avl_utils.h)
 target_compile_options(avltree PRIVATE -O3)
 
 # Prepare "gllinkedpool" library for linking
 add_library(gllinkedpool SHARED
   ${SRC}/avltree/avltree.c
+  ${SRC}/avltree/avl_utils.c
   ${SRC}/pool_allocators/GlobalLinkedPool.cpp)
 set_target_properties(gllinkedpool PROPERTIES PUBLIC_HEADER
   ${SRC}/pool_allocators/GlobalLinkedPool.h)
@@ -36,6 +39,7 @@ target_compile_options(gllinkedpool PRIVATE -O3)
 # Prepare "nsgllinkedpool" library for linking
 add_library(nsgllinkedpool SHARED
   ${SRC}/avltree/avltree.c
+  ${SRC}/avltree/avl_utils.c
   ${SRC}/pool_allocators/NSGlobalLinkedPool.cpp)
 set_target_properties(nsgllinkedpool PROPERTIES PUBLIC_HEADER
   ${SRC}/pool_allocators/NSGlobalLinkedPool.h)
@@ -51,7 +55,14 @@ target_link_libraries(customnewdebug PRIVATE gllinkedpool)
 add_library(customnew SHARED
   ${SRC}/custom_operators/custom_new_delete_v1/custom_new_delete.cpp)
 target_link_libraries(customnew PRIVATE nsgllinkedpool)
+set_target_properties(customnew PROPERTIES PUBLIC_HEADER
+  ${SRC}/custom_operators/custom_new_delete_v1/custom_new_delete.h)
 target_compile_options(customnew PRIVATE -O3)
+
+find_package(LLVM REQUIRED CONFIG)
+add_definitions(${LLVM_DEFINITIONS})
+include_directories(${LLVM_INCLUDE_DIRS})
+add_subdirectory(llvm)
 
 # Prepare "libcustomnew2.so" for inject script
 add_library(customnew2 SHARED
