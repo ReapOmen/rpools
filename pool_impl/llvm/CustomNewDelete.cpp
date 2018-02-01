@@ -10,6 +10,7 @@
 #include <llvm/IR/DerivedTypes.h>
 #include <llvm/IR/IRBuilder.h>
 #include <cxxabi.h>
+#include <cassert>
 
 using namespace llvm;
 using namespace legacy;
@@ -97,9 +98,9 @@ struct CustomNewDelete : public BasicBlockPass {
     mod.getOrInsertFunction(CUSTOM_NEW_NAME, customNewType);
     CUSTOM_NEW_FUNC = mod.getFunction(CUSTOM_NEW_NAME);
 
-    // custom_delete type definition: void* custom_delete(void*)
+    // custom_delete type definition: void custom_delete(void*)
     FunctionType* customDeleteType = FunctionType::get(
-      PointerType::getUnqual(Type::getVoidTy(context)),
+      Type::getVoidTy(context),
       { Type::getVoidTy(context) },
       false
     );
@@ -123,10 +124,6 @@ struct CustomNewDelete : public BasicBlockPass {
     }
 
     IRBuilder<> builder(mod->getContext());
-    // set to the last custom_new call encountered
-    CallInst* lastCustomNewCall = nullptr;
-    // set whenever a call to custom_new is encountered
-    bool considerBitCast = false;
     for (auto& inst : bb) {
       if (isa<CallInst>(inst)) {
         CallInst& ci = cast<CallInst>(inst);
@@ -134,22 +131,15 @@ struct CustomNewDelete : public BasicBlockPass {
         if (func) {
           StringRef name = func->getName();
           if (name == CUSTOM_NEW_NAME) {
-            // processing a custom_new means that the next bitcast
-            // will give us the alignment
-            lastCustomNewCall = &ci;
-            considerBitCast = true;
+            // processing a custom_new means that the next instruction
+            // is a bitcast which will give us the alignment
+            BitCastInst& bci = cast<BitCastInst>(*inst.getNextNode());
+            PointerType& pt = cast<PointerType>(*bci.getDestTy());
+            Type* type = pt.getPointerElementType();
+            size_t alignment = dataLayout.getPrefTypeAlignment(type);
+            ci.setOperand(1, builder.getInt64(alignment));
           }
         }
-      } else if (considerBitCast && isa<BitCastInst>(inst)) {
-        // the last call instruction was a call to custom_new
-        // therefore this bitcast holds the type and the alignment
-        // of the type which is allocated
-        BitCastInst& bci = cast<BitCastInst>(inst);
-        PointerType& pt = cast<PointerType>(*bci.getDestTy());
-        Type* type = pt.getPointerElementType();
-        size_t alignment = dataLayout.getPrefTypeAlignment(type);
-        lastCustomNewCall->setOperand(1, builder.getInt64(alignment));
-        considerBitCast = false;
       }
     }
     return true;
