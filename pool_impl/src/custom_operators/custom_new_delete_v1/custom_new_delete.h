@@ -84,7 +84,7 @@ void* custom_new_no_throw(size_t t_size,
         // 16, have alignment 8, otherwise 16
         // 40 % 16 != 0 -> place the request in a pool that holds
         // objects of size 48 (also note 48 % 16 == 0 -> has an alignment of 16)
-        t_size += (t_size & t_alignment) == 0 ? sizeof(void*) : 0;
+        t_size += (t_size & (t_alignment - 1)) == 0 ? 0 : sizeof(void*);
 #ifdef __x86_64
         light_lock(&__lock);
 #else
@@ -113,7 +113,6 @@ void* custom_new_no_throw(size_t t_size,
 
 void* custom_new(size_t t_size,
                  size_t t_alignment=alignof(max_align_t)) {
-    //cout << "NEW CALLED WITH " << t_size << " " << t_alignment << endl;
     void* toRet = custom_new_no_throw(t_size, t_alignment);
     if (toRet == nullptr) {
         throw std::bad_alloc();
