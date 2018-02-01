@@ -45,19 +45,25 @@ set_target_properties(nsgllinkedpool PROPERTIES PUBLIC_HEADER
   ${SRC}/pool_allocators/NSGlobalLinkedPool.h)
 target_compile_options(nsgllinkedpool PRIVATE -O3)
 
+# Prepare "globalpools" library for linking
+add_library(globalpools SHARED
+  ${SRC}/custom_operators/custom_new_delete_v1/GlobalPools.cpp)
+target_link_libraries(globalpools PUBLIC nsgllinkedpool)
+target_compile_options(globalpools PRIVATE -O3)
+
+# Prepare "libcustomnew.so" for inject script
+add_library(customnew SHARED
+  ${SRC}/custom_operators/custom_new_delete_v1/custom_new_delete.cpp)
+target_link_libraries(customnew PRIVATE globalpools)
+set_target_properties(customnew PROPERTIES PUBLIC_HEADER
+  ${SRC}/custom_operators/custom_new_delete_v1/custom_new_delete.h)
+target_compile_options(customnew PRIVATE -O3)
+
 # Prepare "libcustomnewdebug.so" for inject script
 add_library(customnewdebug SHARED
   ${SRC}/custom_operators/debug/custom_new_delete_debug.cpp
   ${SRC}/tools/AllocCollector.cpp)
 target_link_libraries(customnewdebug PRIVATE gllinkedpool)
-
-# Prepare "libcustomnew.so" for inject script
-add_library(customnew SHARED
-  ${SRC}/custom_operators/custom_new_delete_v1/custom_new_delete.cpp)
-target_link_libraries(customnew PRIVATE nsgllinkedpool)
-set_target_properties(customnew PROPERTIES PUBLIC_HEADER
-  ${SRC}/custom_operators/custom_new_delete_v1/custom_new_delete.h)
-target_compile_options(customnew PRIVATE -O3)
 
 find_package(LLVM REQUIRED CONFIG)
 add_definitions(${LLVM_DEFINITIONS})

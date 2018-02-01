@@ -2,12 +2,10 @@
 #define __CUSTOM_NEW_DELETE_H__
 
 #include <cmath>
-#include <vector>
-#include <cstddef>
 
-#include "tools/mallocator.h"
 #include "tools/FreeDeleter.h"
 #include "pool_allocators/NSGlobalLinkedPool.h"
+#include "GlobalPools.h"
 
 #ifdef __x86_64
 #include "tools/light_lock.h"
@@ -22,13 +20,9 @@ namespace {
     const size_t __threshold = 128; // malloc performs equally well
                                     // on objects of size > 128
     const size_t __mod = sizeof(void*) - 1;
-    const size_t __modMax = alignof(max_align_t) - 1;
     const size_t __logOfVoid = std::log2(sizeof(void*));
 
-    std::vector<
-        std::unique_ptr<NSGlobalLinkedPool, FreeDeleter<NSGlobalLinkedPool>>,
-        mallocator<std::unique_ptr<NSGlobalLinkedPool>>
-    > __allocators(__threshold >> __logOfVoid);
+    GlobalPools __pools(__threshold >> __logOfVoid);
 
     std::unique_ptr<avl_tree, FreeDeleter<avl_tree>>  __mallocedPages(
         avl_init((avl_tree*)std::malloc(sizeof(avl_tree)), NULL)
@@ -39,13 +33,6 @@ namespace {
 #else
     std::mutex __lock;
 #endif
-
-    inline size_t getAllocatorsIndex(size_t t_size) {
-        if (t_size == 0) {
-            return 0;
-        }
-        return (t_size >> __logOfVoid) - 1;
-    }
 }
 
 void* custom_new_no_throw(size_t t_size,
@@ -90,24 +77,11 @@ void* custom_new_no_throw(size_t t_size,
 #else
         std::lock_guard<std::mutex> lock(__lock);
 #endif
-        auto& poolAlloc = __allocators[getAllocatorsIndex(t_size)];
-        if (!poolAlloc) {
-            // all pools of sizes that are mutliples of 8 will have a
-            // default alignment of 8
-            // and all pools of sizes that are multiples of 16 will have an
-            // alignment of 16
-            t_alignment = (t_size & __modMax) == 0 ?
-                alignof(max_align_t) : sizeof(void*);
-            poolAlloc.reset(
-                new (malloc(sizeof(NSGlobalLinkedPool)))
-                    NSGlobalLinkedPool(t_size, t_alignment)
-            );
-        }
-        void* toRet = poolAlloc->allocate();
+        void* addr = __pools.getPool(t_size).allocate();
 #ifdef __x86_64
         light_unlock(&__lock);
 #endif
-        return toRet;
+        return addr;
     }
 }
 
@@ -149,8 +123,7 @@ void custom_delete(void* t_ptr) throw() {
         const PoolHeaderG& ph = NSGlobalLinkedPool::getPoolHeader(t_ptr);
         // convert the size to an index of the allocators vector
         // by dividing it to sizeof(void*)
-        __allocators[getAllocatorsIndex(ph.sizeOfSlot)]
-            ->deallocate(t_ptr);
+        __pools.getPool(ph.sizeOfSlot).deallocate(t_ptr);
     }
 #ifdef __x86_64
     light_unlock(&__lock);
