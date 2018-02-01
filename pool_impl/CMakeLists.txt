@@ -65,10 +65,12 @@ add_library(customnewdebug SHARED
   ${SRC}/tools/AllocCollector.cpp)
 target_link_libraries(customnewdebug PRIVATE gllinkedpool)
 
-find_package(LLVM REQUIRED CONFIG)
-add_definitions(${LLVM_DEFINITIONS})
-include_directories(${LLVM_INCLUDE_DIRS})
-add_subdirectory(llvm)
+find_package(LLVM 3.8 CONFIG)
+if(LLVM_FOUND)
+  add_definitions(${LLVM_DEFINITIONS})
+  include_directories(${LLVM_INCLUDE_DIRS})
+  add_subdirectory(llvm)
+endif()
 
 # Prepare "libcustomnew2.so" for inject script
 add_library(customnew2 SHARED
