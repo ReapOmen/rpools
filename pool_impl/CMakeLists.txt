@@ -31,6 +31,7 @@ target_compile_options(avltree PRIVATE -O3)
 add_library(gllinkedpool SHARED
   ${SRC}/avltree/avltree.c
   ${SRC}/avltree/avl_utils.c
+  ${SRC}/tools/LMLock.cpp
   ${SRC}/pool_allocators/GlobalLinkedPool.cpp)
 set_target_properties(gllinkedpool PROPERTIES PUBLIC_HEADER
   ${SRC}/pool_allocators/GlobalLinkedPool.h)
@@ -47,6 +48,7 @@ target_compile_options(nsgllinkedpool PRIVATE -O3)
 
 # Prepare "globalpools" library for linking
 add_library(globalpools SHARED
+  ${SRC}/tools/LMLock.cpp
   ${SRC}/custom_operators/custom_new_delete_v1/GlobalPools.cpp)
 target_link_libraries(globalpools PUBLIC nsgllinkedpool)
 target_compile_options(globalpools PRIVATE -O3)

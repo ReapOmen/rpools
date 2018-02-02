@@ -4,15 +4,8 @@
 #include <cmath>
 
 #include "tools/FreeDeleter.h"
-#include "pool_allocators/NSGlobalLinkedPool.h"
 #include "GlobalPools.h"
-
-#ifdef __x86_64
-#include "tools/light_lock.h"
-#else
-#include <mutex>
-#include <thread>
-#endif
+#include "tools/LMLock.h"
 
 namespace {
     using efficient_pools::NSGlobalLinkedPool;
@@ -28,11 +21,7 @@ namespace {
         avl_init((avl_tree*)std::malloc(sizeof(avl_tree)), NULL)
     );
 
-#ifdef __x86_64
-    light_lock_t __lock(LIGHT_LOCK_INIT);
-#else
-    std::mutex __lock;
-#endif
+    LMLock __lock;
 }
 
 void* custom_new_no_throw(size_t t_size,
@@ -44,11 +33,7 @@ void* custom_new_no_throw(size_t t_size,
         size_t maskedAddr = reinterpret_cast<size_t>(addr) &
             NSGlobalLinkedPool::POOL_MASK;
         void* page = reinterpret_cast<void*>(maskedAddr);
-#ifdef __x86_64
-        light_lock(&__lock);
-#else
-        std::lock_guard<std::mutex> lock(__lock);
-#endif
+        __lock.lock();
         auto res = _get_entry(page_get(__mallocedPages.get(), page),
                               PageNode, avl);
         if (res) {
@@ -56,9 +41,7 @@ void* custom_new_no_throw(size_t t_size,
         } else {
             page_insert(__mallocedPages.get(), page);
         }
-#ifdef __x86_64
-        light_unlock(&__lock);
-#endif
+        __lock.unlock();
         return addr;
     } else {
         size_t remainder = t_size & __mod; // t_size % sizeof(void*)
@@ -72,15 +55,9 @@ void* custom_new_no_throw(size_t t_size,
         // 40 % 16 != 0 -> place the request in a pool that holds
         // objects of size 48 (also note 48 % 16 == 0 -> has an alignment of 16)
         t_size += (t_size & (t_alignment - 1)) == 0 ? 0 : sizeof(void*);
-#ifdef __x86_64
-        light_lock(&__lock);
-#else
-        std::lock_guard<std::mutex> lock(__lock);
-#endif
+        __lock.lock();
         void* addr = __pools.getPool(t_size).allocate();
-#ifdef __x86_64
-        light_unlock(&__lock);
-#endif
+        __lock.unlock();
         return addr;
     }
 }
@@ -99,11 +76,7 @@ void custom_delete(void* t_ptr) throw() {
     // or within a pool
     size_t addr = reinterpret_cast<size_t>(t_ptr);
     void* page = reinterpret_cast<void*>(addr & NSGlobalLinkedPool::POOL_MASK);
-#ifdef __x86_64
-    light_lock(&__lock);
-#else
-    std::unique_lock<std::mutex> lock(__lock);
-#endif
+    __lock.lock();
     avl_node* kv = page_get(__mallocedPages.get(), page);
     auto res = _get_entry(kv, PageNode, avl);
     if (res) {
@@ -112,11 +85,7 @@ void custom_delete(void* t_ptr) throw() {
         } else {
             page_remove(__mallocedPages.get(), kv);
         }
-#ifdef __x86_64
-        light_unlock(&__lock);
-#else
-        lock.unlock();
-#endif
+        __lock.unlock();
         std::free(t_ptr);
         return;
     } else {
@@ -125,11 +94,7 @@ void custom_delete(void* t_ptr) throw() {
         // by dividing it to sizeof(void*)
         __pools.getPool(ph.sizeOfSlot).deallocate(t_ptr);
     }
-#ifdef __x86_64
-    light_unlock(&__lock);
-#else
-    lock.unlock();
-#endif
+    __lock.unlock();
 }
 
 #endif // __CUSTOM_NEW_DELETE_H__

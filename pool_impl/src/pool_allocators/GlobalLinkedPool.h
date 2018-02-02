@@ -1,18 +1,11 @@
 #ifndef __GLOBAL_LINKED_POOL_H__
 #define __GLOBAL_LINKED_POOL_H__
 
-#include "PoolHeaderG.h"
-
 extern "C" {
 #include "avltree/avl_utils.h"
 }
-
-#ifdef __x86_64
-#include "tools/light_lock.h"
-#else
-#include <mutex>
-#include <thread>
-#endif
+#include "PoolHeaderG.h"
+#include "tools/LMLock.h"
 
 namespace efficient_pools {
 
@@ -83,11 +76,7 @@ public:
 
 private:
     avl_tree m_freePools;
-#ifdef __x86_64
-    light_lock_t m_poolLock;
-#else
-    std::mutex m_poolLock;
-#endif
+    LMLock m_poolLock;
     const size_t m_sizeOfObjects;
     size_t m_headerPadding;
     size_t m_slotSize;

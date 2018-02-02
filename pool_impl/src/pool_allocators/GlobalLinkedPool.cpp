@@ -16,11 +16,7 @@ const size_t GlobalLinkedPool::POOL_MASK = ~0 >>
 GlobalLinkedPool::GlobalLinkedPool(size_t t_sizeOfObjects,
                                    size_t t_alignment)
     : m_freePools(),
-      m_poolLock(
-#ifdef __x86_64
-          LIGHT_LOCK_INIT
-#endif
-      ),
+      m_poolLock(),
       m_sizeOfObjects(t_sizeOfObjects < sizeof(Node) ?
                       sizeof(Node) : t_sizeOfObjects),
       m_headerPadding(0),
@@ -43,11 +39,7 @@ GlobalLinkedPool::GlobalLinkedPool(size_t t_sizeOfObjects,
 }
 
 void* GlobalLinkedPool::allocate() {
-#ifdef __x86_64
-    light_lock(&m_poolLock);
-#else
-    std::lock_guard<std::mutex> lock(m_poolLock);
-#endif
+    m_poolLock.lock();
     if (m_freePool) {
         return nextFree(m_freePool);
     } else {
@@ -70,13 +62,7 @@ void GlobalLinkedPool::deallocate(void* t_ptr) {
     PoolHeaderG* pool = reinterpret_cast<PoolHeaderG*>(
         reinterpret_cast<size_t>(t_ptr) & POOL_MASK
     );
-
-#ifdef __x86_64
-    light_lock(&m_poolLock);
-#else
-    std::lock_guard<std::mutex> lock(m_poolLock);
-#endif
-
+    m_poolLock.lock();
     if (pool->occupiedSlots == 1) {
         pool_remove(&m_freePools, pool);
         free(pool);
@@ -92,9 +78,7 @@ void GlobalLinkedPool::deallocate(void* t_ptr) {
             pool_insert(&m_freePools, pool);
         }
     }
-#ifdef __x86_64
-    light_unlock(&m_poolLock);
-#endif
+    m_poolLock.unlock();
 }
 
 void GlobalLinkedPool::constructPoolHeader(char* t_ptr) {
@@ -126,9 +110,7 @@ void* GlobalLinkedPool::nextFree(Pool pool) {
             m_freePool = pool_first(&m_freePools);
         }
     }
-#ifdef __x86_64
-    light_unlock(&m_poolLock);
-#endif
+    m_poolLock.unlock();
     return toReturn;
 }
 
