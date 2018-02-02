@@ -29,12 +29,12 @@ GlobalLinkedPool::GlobalLinkedPool(size_t t_sizeOfObjects,
       m_freePool(nullptr) {
     avl_init(&m_freePools, NULL);
     // make sure the first slot starts at a proper alignment
-    size_t diff = sizeof(PoolHeaderG) % t_alignment;
+    size_t diff = sizeof(PoolHeaderG) & (t_alignment - 1);
     if (diff != 0) {
         m_headerPadding += t_alignment - diff;
     }
     // make sure that slots are properly aligned
-    diff = m_slotSize % t_alignment;
+    diff = m_slotSize & (t_alignment - 1);
     if (diff != 0) {
         m_slotSize += t_alignment - diff;
     }

@@ -39,7 +39,7 @@ void* custom_new_no_throw(size_t t_size,
                           size_t t_alignment=alignof(max_align_t)) {
     // use malloc for large sizes or if we are dealing with
     // alignments that are not 2, 4, 8, 16
-    if (alignof(max_align_t) % t_alignment != 0 || t_size > __threshold) {
+    if ((alignof(max_align_t) & (t_alignment - 1)) != 0 || t_size > __threshold) {
         void* addr = aligned_alloc(t_alignment, t_size);
         size_t maskedAddr = reinterpret_cast<size_t>(addr) &
             NSGlobalLinkedPool::POOL_MASK;
