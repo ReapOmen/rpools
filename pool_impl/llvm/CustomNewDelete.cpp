@@ -9,32 +9,78 @@
 #include <llvm/IR/DataLayout.h>
 #include <llvm/IR/DerivedTypes.h>
 #include <llvm/IR/IRBuilder.h>
+#include <algorithm>
+#include <vector>
+#include <map>
 #include <cxxabi.h>
 
 using namespace llvm;
 using namespace legacy;
+using std::vector;
+using std::map;
+using std::find;
 
 namespace {
 /**
  *  Change all occurences of `operator new` with `custom_new` and all occurences
  *  of `operator delete` with `custom_delete`
- *  @note only the basic `operator new` is considered
+ *  @note All versions of operator new and delete are considered.
  */
 struct CustomNewDelete : public BasicBlockPass {
   static char ID;
   /** Mangled custom_new function name. */
-  static StringRef CUSTOM_NEW_NAME;
-  static StringRef DEMANGLED_OP_NEW;
+  static const StringRef CUSTOM_NEW_NAME;
+  /** Mangled custom_new_no_throw function name. */
+  static const StringRef CUSTOM_NEW_NO_THROW_NAME;
   /** Mangled custom_delete function name. */
-  static StringRef CUSTOM_DELETE_NAME;
-  static StringRef DEMANGLED_OP_DELETE;
+  static const StringRef CUSTOM_DELETE_NAME;
   /** The declaration of custom_new inside of the module. */
   static Function* CUSTOM_NEW_FUNC;
+  /** The declaration of custom_new_no_throw inside of the module. */
+  static Function* CUSTOM_NEW_NO_THROW_FUNC;
   /** The declaration of custom_delete inside of the module. */
   static Function* CUSTOM_DELETE_FUNC;
+  /** The demangled names of all operator new functions that
+      throw std::bad_alloc. */
+  static const vector<StringRef> NEW_OPS;
+  /** The demangled names of all operator new functions that
+      do not throw std::bad_alloc. */
+  static const vector<StringRef> NEW_NO_THROW_OPS;
+  /** The demangled names of all operator delete functions. */
+  static const vector<StringRef> DELETE_OPS;
+  /** The demangled names of all operator delete functions which take
+      an extra argument (i.e. std::nothrow) */
+  static const vector<StringRef> DELETE_NO_THROW_OPS;
+  /** A mapping from operator news to their `custom_new` correspondent. */
+  static const map<StringRef, Function**> OP_TO_CUSTOM;
+
+  /**
+   *  @param name a demangled Function name
+   *  @return whether `name` is in `NEW_OPS` or in `NEW_NO_THROW_OPS`.
+   */
+  static bool isNew(const StringRef& name) {
+    return find(NEW_OPS.begin(), NEW_OPS.end(), name) != NEW_OPS.end()
+      || find(NEW_NO_THROW_OPS.begin(), NEW_NO_THROW_OPS.end(), name)
+        != NEW_NO_THROW_OPS.end();
+  }
+
+  /**
+   *  @param name a demangled Function name
+   *  @return whether `name` is in `DELETE_OPS` or in `DELETE_NO_THROW_OPS`.
+   */
+  static bool isDelete(const StringRef& name) {
+    return find(DELETE_OPS.begin(), DELETE_OPS.end(), name)
+        != DELETE_OPS.end()
+      || find(DELETE_NO_THROW_OPS.begin(), DELETE_NO_THROW_OPS.end(), name)
+        != DELETE_NO_THROW_OPS.end();
+  }
 
   CustomNewDelete() : BasicBlockPass(ID) {}
 
+  /**
+   *  @param name a demangled Function name
+   *  @return the demangled name of a LLVM function.
+   */
   StringRef getDemangledName(StringRef name) {
     int status = -1;
     char* demangledName = abi::__cxa_demangle(
@@ -61,17 +107,17 @@ struct CustomNewDelete : public BasicBlockPass {
         if (func) {
           StringRef name = getDemangledName(func->getName());
           IRBuilder<> builder(&ci);
-          if (name == DEMANGLED_OP_NEW) {
+          if (isNew(name)) {
             // replace the call to operator new with custom_new
             // but make sure the first argument of operator new
             // is copied into custom new as well!
             ci.replaceAllUsesWith(
-              builder.CreateCall(CUSTOM_NEW_FUNC,
+              builder.CreateCall(*OP_TO_CUSTOM.at(name),
                                  { ci.getOperand(0), builder.getInt64(0) })
             );
             // save call instruction to remove it later
             insts.push_back(&ci);
-          } else if (name == DEMANGLED_OP_DELETE) {
+          } else if (isDelete(name)) {
             // we are processing an operator delete call
             // because custom_delete and operator delete take the same
             // type and number of arguments, we can just change the
@@ -85,19 +131,22 @@ struct CustomNewDelete : public BasicBlockPass {
           if (func) {
             StringRef name = getDemangledName(func->getName());
             IRBuilder<> builder(&ii);
-            if (name == DEMANGLED_OP_NEW) {
+            if (isNew(name)) {
               InvokeInst* customNewInvoke =
-                builder.CreateInvoke(CUSTOM_NEW_FUNC,
+                // InvokeInsts seem to not hold the type, therefore we will
+                // assume the largest alignment possible
+                builder.CreateInvoke(*OP_TO_CUSTOM.at(name),
                                      ii.getNormalDest(),
                                      ii.getUnwindDest(),
-                                     { ii.getOperand(0), builder.getInt64(0) });
+                                     { ii.getOperand(0),
+                                       builder.getInt64(alignof(max_align_t)) });
               AttributeSet attrs;
               attrs.addAttribute(ii.getContext(), 0, Attribute::NoAlias);
               customNewInvoke->setAttributes(attrs);
               ii.replaceAllUsesWith(customNewInvoke);
               insts.push_back(&ii);
-          } else if (name == DEMANGLED_OP_DELETE) {
-            ii.setCalledFunction(CUSTOM_DELETE_FUNC);
+            } else if (isDelete(name)) {
+              ii.setCalledFunction(CUSTOM_DELETE_FUNC);
           }
         }
       }
@@ -115,13 +164,17 @@ struct CustomNewDelete : public BasicBlockPass {
       false
     );
     // add the declaration of custom_new into the module
-    // because we will link it later
+    // because it will be linked later
     mod.getOrInsertFunction(CUSTOM_NEW_NAME, customNewType);
     CUSTOM_NEW_FUNC = mod.getFunction(CUSTOM_NEW_NAME);
 
+    // reuse customNewType because custom_new_no_throw has the same signature
+    mod.getOrInsertFunction(CUSTOM_NEW_NO_THROW_NAME, customNewType);
+    CUSTOM_NEW_NO_THROW_FUNC = mod.getFunction(CUSTOM_NEW_NO_THROW_NAME);
+
     // custom_delete type definition: void custom_delete(void*)
     FunctionType* customDeleteType = FunctionType::get(
-      Type::getVoidTy(context),
+      Type::getInt8PtrTy(context),
       { Type::getVoidTy(context) },
       false
     );
@@ -167,31 +220,46 @@ struct CustomNewDelete : public BasicBlockPass {
             }
           }
         }
-      } else if (isa<InvokeInst>(inst)) {
-        InvokeInst& ii = cast<InvokeInst>(inst);
-        auto func = ii.getCalledFunction();
-        if (func) {
-          StringRef name = func->getName();
-          if (name == CUSTOM_NEW_NAME) {
-            // InvokeInsts seem to not hold the type, therefore we will
-            // assume the largest alignment possible
-            ii.setOperand(1, builder.getInt64(alignof(max_align_t)));
-          }
-        }
       }
     }
     return true;
   }
-}; // end of struct New
+}; // end of struct CustomNewDelete
 }  // end of anonymous namespace
 
 char CustomNewDelete::ID = 0;
-StringRef CustomNewDelete::CUSTOM_NEW_NAME = "_Z10custom_newmm";
-StringRef CustomNewDelete::DEMANGLED_OP_NEW = "operator new(unsigned long)";
-StringRef CustomNewDelete::CUSTOM_DELETE_NAME = "_Z13custom_deletePv";
-StringRef CustomNewDelete::DEMANGLED_OP_DELETE = "operator delete(void*)";
+const StringRef CustomNewDelete::CUSTOM_NEW_NAME = "_Z10custom_newmm";
+const StringRef CustomNewDelete::CUSTOM_NEW_NO_THROW_NAME =
+  "_Z19custom_new_no_throwmm";
+const StringRef CustomNewDelete::CUSTOM_DELETE_NAME = "_Z13custom_deletePv";
+
 Function* CustomNewDelete::CUSTOM_NEW_FUNC = nullptr;
+Function* CustomNewDelete::CUSTOM_NEW_NO_THROW_FUNC = nullptr;
 Function* CustomNewDelete::CUSTOM_DELETE_FUNC = nullptr;
+
+const vector<StringRef> CustomNewDelete::NEW_OPS = {
+  "operator new(unsigned long)",
+  "operator new[](unsigned long)"
+};
+const vector<StringRef> CustomNewDelete::NEW_NO_THROW_OPS = {
+  "operator new(unsigned long, std::nothrow_t const&)",
+  "operator new[](unsigned long, std::nothrow_t const&)"
+};
+const vector<StringRef> CustomNewDelete::DELETE_OPS = {
+  "operator delete(void*)",
+  "operator delete[](void*)"
+};
+const vector<StringRef> CustomNewDelete::DELETE_NO_THROW_OPS = {
+  "operator delete(void*, std::nothrow_t const&)",
+  "operator delete[](void*, std::nothrow_t const&)"
+};
+
+const map<StringRef, Function**> CustomNewDelete::OP_TO_CUSTOM = {
+  { NEW_OPS[0], &CUSTOM_NEW_FUNC },
+  { NEW_OPS[1], &CUSTOM_NEW_FUNC },
+  { NEW_NO_THROW_OPS[0], &CUSTOM_NEW_NO_THROW_FUNC },
+  { NEW_NO_THROW_OPS[1], &CUSTOM_NEW_NO_THROW_FUNC }
+};
 
 static RegisterPass<CustomNewDelete> X("custom new delete",
                                        "CustomNewDelete Pass",
