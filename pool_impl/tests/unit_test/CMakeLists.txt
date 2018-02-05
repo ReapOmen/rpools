@@ -20,7 +20,7 @@ add_test(NAME TestGlobalLinkedPool COMMAND test_global_linked_pool)
 
 # test custom_new_delete.cpp
 add_executable(test_custom_new_delete test_custom_new_delete.cpp)
-target_link_libraries(test_custom_new_delete PRIVATE nsgllinkedpool testrunner)
+target_link_libraries(test_custom_new_delete PRIVATE globalpools testrunner)
 add_test(NAME TestCustomNewDelete COMMAND test_custom_new_delete)
 
 # test custom_new_delete2.cpp

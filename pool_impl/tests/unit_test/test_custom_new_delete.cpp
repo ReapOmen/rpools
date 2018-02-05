@@ -43,4 +43,12 @@ TEST_CASE("Weird alignments are correctly accommodated",
     REQUIRE((size_t)custom_new(8) % 16 == 0);
     REQUIRE((size_t)custom_new(120, 32) % 32 == 0);
     REQUIRE((size_t)custom_new(500, 64) % 64 == 0);
+    REQUIRE((size_t)custom_new(48, 16) % 16 == 0);
+}
+
+TEST_CASE("121 aligned at 16 bytes will get allocated into a pool of size 128",
+          "[custom_new_delete]") {
+    void* res = custom_new_no_throw(121, 16);
+    REQUIRE((size_t)res % 16 == 0);
+    REQUIRE(NSGlobalLinkedPool::getPoolHeader(res).sizeOfSlot == 128);
 }
