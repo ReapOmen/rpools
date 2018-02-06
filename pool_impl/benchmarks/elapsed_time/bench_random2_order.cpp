@@ -11,17 +11,11 @@
  *  The order of (de)allocation is saved so that all implementations will
  *  (de)allocate in the same order.
  *  @par
- *  Allocation and deallocation is done with both new/delete and LinkedPools.
- *  The results will be written to a file called **random2_time_taken.output**
- *  and it will be of the form: <br>
- *    ```
- *    Allocating <ARG> objects.
- *    Allocate TestObject normally: X ms
- *    Deallocate TestObject normally: Y ms
- *    Allocate TestObject with LinkedPool: X1 ms
- *    Deallocate TestObject with LinkedPool: Y1 ms
- *    ...
- *    ```
+ *  Allocation and deallocation is done with `new/delete`, `LinkedPools`,
+ *  `MemoryPool` and `boost::object_pool`.
+ *  @par
+ *  The results will be written to a file called **random2_time_taken.json**
+ *  @see JSONWriter
  */
 
 #include <vector>
@@ -125,7 +119,7 @@ float deallocateN(size_t index, vector<TestObject*>& vec,
 }
 
 template<template <typename, typename> class T>
-void benchPool(size_t BOUND, std::ofstream& f,
+void benchPool(size_t BOUND, JSONWriter& j,
                const vector<pair<size_t, bool>>& order,
                const std::string& name) {
     T<TestObject, boost::default_user_allocator_malloc_free> lp;
@@ -141,8 +135,8 @@ void benchPool(size_t BOUND, std::ofstream& f,
             dealloc += deallocateN(pair.first, objs, lp);
         }
     }
-    printToFile2(f, "TestObject", alloc, false, name);
-    printToFile2(f, "TestObject", dealloc, true, name);
+    j.addAllocation(name, alloc);
+    j.addDeallocation(name, dealloc);
 }
 #endif
 
@@ -181,13 +175,13 @@ void pushAndPop(vector<pair<size_t, bool>>& vec,
  *  The allocation and deallocation times are recorded and written to a file.
  *  @tparam T the type of the pool allocator
  *  @param bound the number of (de)allocations
- *  @param f the file in which the output is written
+ *  @param j the JSONWriter which records the speed
  *  @param order the order in which the objects are (de)allocated
  *  @param name the name of the pool allocator which (de)allocates
  *              `TestObject`s
  */
 template<template <typename> class T>
-void benchPool(size_t bound, std::ofstream& f,
+void benchPool(size_t bound, JSONWriter& j,
                const vector<pair<size_t, bool>>& order,
                const std::string& name) {
     T<TestObject> lp;
@@ -203,13 +197,12 @@ void benchPool(size_t bound, std::ofstream& f,
             dealloc += deallocateN(pair.first, objs, lp);
         }
     }
-    printToFile2(f, "TestObject", alloc, false, name);
-    printToFile2(f, "TestObject", dealloc, true, name);
+    j.addAllocation(name, alloc);
+    j.addDeallocation(name, dealloc);
 }
 
 int main(int argc, char *argv[]) {
     size_t BOUND = argc > 1 ? std::stoul(argv[1]) : 10000;
-    std::ofstream f("random2_time_taken.output");
 
     time_t seconds;
     time(&seconds);
@@ -241,7 +234,7 @@ int main(int argc, char *argv[]) {
     }
     pushAndPop(order, allocated.size(), allocated);
 
-    f << "Allocating " << BOUND << " objects." << std::endl;
+    JSONWriter j("random2_time_taken.json", BOUND);
     {
         vector<TestObject*> objs(BOUND);
         float alloc = 0.0f;
@@ -255,21 +248,21 @@ int main(int argc, char *argv[]) {
                 dealloc += deallocateN(pair.first, objs);
             }
         }
-        printToFile2(f, "TestObject", alloc, false, "Regular");
-        printToFile2(f, "TestObject", dealloc, true, "Regular");
+        j.addAllocation("new/delete", alloc);
+        j.addDeallocation("new/delete", dealloc);
     }
     {
-        benchPool<LinkedPool>(BOUND, f, order, "LinkedPool");
+        benchPool<LinkedPool>(BOUND, j, order, "LinkedPool");
     }
     {
-        benchPool<LinkedPool3>(BOUND, f, order, "LinkedPool3");
+        benchPool<LinkedPool3>(BOUND, j, order, "LinkedPool3");
     }
     {
-        benchPool<MemoryPool>(BOUND, f, order, "MemoryPool");
+        benchPool<MemoryPool>(BOUND, j, order, "MemoryPool");
     }
 #ifdef INCLUDE_BOOST
     {
-        benchPool<boost::object_pool>(BOUND, f, order, "boost::object_pool");
+        benchPool<boost::object_pool>(BOUND, j, order, "boost::object_pool");
     }
 #endif
     return 0;

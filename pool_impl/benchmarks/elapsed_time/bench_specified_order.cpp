@@ -8,16 +8,8 @@
  *  A command line argument can be passed to set the number of `TestObject`s
  *  that will be created and destroyed.
  *  @par
- *  The results will be written to a file called **specified_time_taken.output** and
- *  it will be of the form: <br>
- *    ```
- *    Allocating <ARG> objects.
- *    Allocate TestObject normally: X ms
- *    Deallocate TestObject normally: Y ms
- *    Allocate TestObject with LinkedPool: X1 ms
- *    Deallocate TestObject with LinkedPool: Y1 ms
- *    ...
- *    ```
+ *  The results will be written to a file called **specified_time_taken.json**.
+ *  @see JSONWriter
  */
 
 #include <vector>
@@ -111,13 +103,13 @@ float deallocateN(size_t num, vector<TestObject*>& vec, T<TestObject>& lp) {
  *  The allocation and deallocation times are recorded and written to a file.
  *  @tparam T the type of the pool allocator
  *  @param bound the number of (de)allocations
- *  @param f the file in which the output is written
+ *  @param j the JSONWriter which records the speed
  *  @param five 5% of `bound`
  *  @param ten 10% of `bound`
  *  @param name the name of the pool allocator which (de)allocates `TestObject`s
  */
 template<template <typename> class T>
-void benchPool(size_t bound, std::ofstream& f,
+void benchPool(size_t bound, JSONWriter& j,
                size_t five, size_t ten,
                const std::string& name) {
     T<TestObject> lp;
@@ -146,8 +138,8 @@ void benchPool(size_t bound, std::ofstream& f,
     alloc += allocateN(five, objs, lp);
     dealloc += deallocateN(ten, objs, lp);
 
-    printToFile2(f, "TestObject", alloc, false, name);
-    printToFile2(f, "TestObject", dealloc, true, name);
+    j.addAllocation(name, alloc);
+    j.addDeallocation(name, dealloc);
 }
 
 #ifdef INCLUDE_BOOST
@@ -173,7 +165,7 @@ float deallocateN(size_t num, vector<TestObject*>& vec,
 }
 
 template<template <typename, typename> class T>
-void benchPool(size_t BOUND, std::ofstream& f,
+void benchPool(size_t BOUND, JSONWriter& j,
                size_t five, size_t ten,
                const std::string& name) {
     T<TestObject, boost::default_user_allocator_malloc_free> lp;
@@ -202,19 +194,16 @@ void benchPool(size_t BOUND, std::ofstream& f,
     alloc += allocateN(five, objs, lp);
     dealloc += deallocateN(ten, objs, lp);
 
-    printToFile2(f, "TestObject", alloc, false, name);
-    printToFile2(f, "TestObject", dealloc, true, name);
+    j.addAllocation(name, alloc);
+    j.addDeallocation(name, dealloc);
 }
 #endif
 
 int main(int argc, char *argv[]) {
     size_t BOUND = argc > 1 ? std::stoul(argv[1]) : 10000;
-
-    std::ofstream f("specified_time_taken.output");
-
+    JSONWriter j("specified_time_taken.json", BOUND);
     size_t five = BOUND * 5 / 100; // 5%
     size_t ten = BOUND / 10; // 10%
-    f << "Allocating " << BOUND << " objects." << std::endl;
     {
         vector<TestObject*> objs;
         objs.reserve(BOUND);
@@ -241,21 +230,21 @@ int main(int argc, char *argv[]) {
         alloc += allocateN(five, objs);
         dealloc += deallocateN(ten, objs);
 
-        printToFile2(f, "TestObject", alloc, false, "Regular");
-        printToFile2(f, "TestObject", dealloc, true, "Regular");
+        j.addAllocation("new/delete", alloc);
+        j.addDeallocation("new/delete", dealloc);
     }
     {
-        benchPool<LinkedPool>(BOUND, f, five, ten, "LinkedPool");
+        benchPool<LinkedPool>(BOUND, j, five, ten, "LinkedPool");
     }
     {
-        benchPool<LinkedPool3>(BOUND, f, five, ten, "LinkedPool3");
+        benchPool<LinkedPool3>(BOUND, j, five, ten, "LinkedPool3");
     }
     {
-        benchPool<MemoryPool>(BOUND, f, five, ten, "MemoryPool");
+        benchPool<MemoryPool>(BOUND, j, five, ten, "MemoryPool");
     }
 #ifdef INCLUDE_BOOST
     {
-        benchPool<boost::object_pool>(BOUND, f, five, ten, "boost::object_pool");
+        benchPool<boost::object_pool>(BOUND, j, five, ten, "boost::object_pool");
     }
 #endif
     return 0;

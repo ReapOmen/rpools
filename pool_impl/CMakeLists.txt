@@ -18,7 +18,7 @@ if(Boost_FOUND)
 endif()
 
 include_directories(${SRC})
-add_subdirectory(src)
+add_subdirectory(./src)
 
 # Prepare "gllinkedpool" library for linking
 add_library(gllinkedpool SHARED
@@ -70,6 +70,8 @@ target_link_libraries(customnew2 PRIVATE gllinkedpool)
 
 enable_testing()
 include_directories(./tests)
-add_subdirectory(tests)
+add_subdirectory(./tests)
+
+include_directories(./libs/json/single_include)
 
 add_subdirectory(benchmarks)

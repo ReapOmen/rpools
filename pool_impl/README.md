@@ -24,7 +24,7 @@ Usage (make sure you build the project first):
 * `python3 plot_elapsed_time.py -h` to see the help menu
 
 Examples:
-* `python3 plot_elapsed_time.py -t ./build/benchmarks/elapsed_time/bench_random
+* `python3 plot_elapsed_time.py -b ./build/benchmarks/elapsed_time/bench_random
 -n 100000`
 
 Explanation (can also be found in the help menu of the script):
