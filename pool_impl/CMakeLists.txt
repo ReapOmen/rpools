@@ -7,11 +7,6 @@ set(CMAKE_CXX_FLAGS "-g -Wall -Werror -pthread -std=c++11 ${CMAKE_CXX_FLAGS}")
 
 set(SRC ${PROJECT_SOURCE_DIR}/src)
 
-# Prepare "Catch" library for other executables
-set(CATCH_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/catch)
-add_library(Catch INTERFACE)
-target_include_directories(Catch INTERFACE ${CATCH_INCLUDE_DIR})
-
 find_package(Boost)
 if(Boost_FOUND)
   include_directories(${Boost_INCLUDE_DIRS})
@@ -67,6 +62,11 @@ endif()
 add_library(customnew2 SHARED
   ${SRC}/custom_operators/custom_new_delete_v2/custom_new_delete.cpp)
 target_link_libraries(customnew2 PRIVATE gllinkedpool)
+
+# Prepare "Catch" library for other executables
+set(CATCH_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/libs/Catch2/single_include)
+add_library(Catch INTERFACE)
+target_include_directories(Catch INTERFACE ${CATCH_INCLUDE_DIR})
 
 enable_testing()
 include_directories(./tests)

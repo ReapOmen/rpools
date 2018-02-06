@@ -1,3 +1,6 @@
 [submodule "pool_impl/libs/json"]
 	path = pool_impl/libs/json
 	url = https://github.com/nlohmann/json
+[submodule "pool_impl/libs/Catch2"]
+	path = pool_impl/libs/Catch2
+	url = https://github.com/catchorg/Catch2
