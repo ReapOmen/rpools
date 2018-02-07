@@ -1,7 +1,9 @@
 *.output
+*.json
 *.massif
 build
 alloc_benchmark_*
+doc/html
 
 # emacs
 \#*

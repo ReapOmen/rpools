@@ -1,68 +1,82 @@
 #!/usr/bin/python3
 
+import json
 import subprocess
 import matplotlib.pyplot as plt
 
 
-NUM_OF_IMPLEMENTATIONS = 0
-FILE = ''
-EXEC = ''
-LIMIT = 100000
-labels = []
+def get_json(json_file):
+    """
+    Return the JSON found in the given file.
+    :param json_file: the file which contains the JSON
+    :type json_file: str
+    :returns: dict
+    """
+    with open(json_file) as f:
+        content = json.load(f)
+    return content
 
 
-def get_alloc_time():
-    lst = []
-    num = 0
-    labels = []
-    with open(FILE) as f:
-        for line in f:
-            if not line.endswith('.\n'):
-                split = line.split(' ')
-                labels.append(split[2][0:-1])
-                lst.append(float(split[-2]))
-            else:
-                num = int(line.split(' ')[1])
-    return (num, lst, labels)
-
-
-def call_test(allocs):
-    subprocess.run([EXEC, str(allocs)])
-
-
-def plot():
-    global labels, NUM_OF_IMPLEMENTATIONS
-    alloc_time_plot = []
-    dealloc_time_plot = []
-    alloc_range = range(LIMIT//10, LIMIT+1, LIMIT//10)
-    plot_alloc_range = []
+def plot(executable, json_file, limit):
+    """
+    Run <executable> 10 times in increments of <limit> / 10.
+    :param executable: the path to the executable
+    :type executable: str
+    :param json_file: the file which contains the JSON
+    :type json_file: str
+    :param limit: the maximum number passed to the executable
+    :type limit: int
+    """
+    # if the (de)alloc_time_plot lists were initialised or not
     is_init = False
+    # range of values with which the benchmark is called
+    alloc_range = range(limit//10, limit+1, limit//10)
     for i in alloc_range:
-        print("\r", i, "/", LIMIT, end="")
-        call_test(i)
-        labels = []
-        alloc_time = get_alloc_time()
-        plot_alloc_range.append(alloc_time[0])
+        print("\r", i, "/", limit, end="")
+        # calls the benchmark <executable> with the argument <i>
+        subprocess.run([executable, str(i)])
+        # the executable will create a file denoted by <json_file>
+        bench_results = get_json(json_file)
         if not is_init:
-            NUM_OF_IMPLEMENTATIONS = len(alloc_time[1]) // 2
-            alloc_time_plot = [[] for i in range(NUM_OF_IMPLEMENTATIONS)]
-            dealloc_time_plot = [[] for i in range(NUM_OF_IMPLEMENTATIONS)]
+            num_of_implementations = len(bench_results["allocators"])
+            # each sub array contains the allocation times for one
+            # specific allocator
+            # e.g. subarray 1 contains the allocation times of new/delete
+            # for 10, 20, 30, ..., 100 objects; subarray 2 contains the same,
+            # but for LinkedPool
+            alloc_time_plot = [[] for i in range(num_of_implementations)]
+            dealloc_time_plot = [[] for i in range(num_of_implementations)]
+            # the names of all allocators
+            labels = [name for name in bench_results["allocators"]]
             is_init = True
-        for j in range(0, NUM_OF_IMPLEMENTATIONS):
-            index = j * 2
-            labels.append(alloc_time[2][index])
-            alloc_time_plot[j].append(alloc_time[1][index])
-            dealloc_time_plot[j].append(alloc_time[1][index + 1])
+        k = 0
+        for name, allocator in bench_results["allocators"].items():
+            alloc_time_plot[k].append(allocator["allocation_time"])
+            dealloc_time_plot[k].append(allocator["deallocation_time"])
+            k += 1
     print()
-    plot_time(plot_alloc_range, alloc_time_plot, 211,
+    plot_time(alloc_range, alloc_time_plot, 211,
               'Allocation time of the %d implementations' %
-              (NUM_OF_IMPLEMENTATIONS))
-    plot_time(plot_alloc_range, dealloc_time_plot, 212,
+              (num_of_implementations), labels)
+    plot_time(alloc_range, dealloc_time_plot, 212,
               'Deallocation time of the %d implementations' %
-              (NUM_OF_IMPLEMENTATIONS))
+              (num_of_implementations), labels)
 
 
-def plot_time(x, y, subplot, title):
+def plot_time(x, y, subplot, title, labels):
+    """
+    Plot the given information.
+    :param x: the X axis
+    :type x: list
+    :param y: the Y axis
+    :type y: list
+    :param subplot: the subplot to use
+    :type subplot: int
+    :param title: the title of the plot
+    :type title: str
+    :param labels: the labels of the plot
+    :type labels: list
+    """
     plt.subplot(subplot)
     plt.title(title)
     plots = []
@@ -77,16 +91,15 @@ if __name__ == "__main__":
     import os
     import argparse
     parser = argparse.ArgumentParser(description='Plot test data')
-    parser.add_argument('--test', '-t', help='Which test to run '
-                        '(default: test_normal)',
-                        default="./build/test_linked_pool/test_normal")
+    parser.add_argument('--benchmark', '-b', help='Which benchmark to run '
+                        '(default: bench_normal)',
+                        default="./build/benchmarks/elapsed_time/bench_normal")
     parser.add_argument('--upper-bound', '-n',
                         help='The upperbound of the number of '
                         'allocations (default: 100000)',
                         type=int, default=100000)
     args = parser.parse_args()
-    EXEC = args.test
-    FILE = EXEC.split(os.path.sep)[-1].split('_')[-1] + '_time_taken.output'
-    LIMIT = args.upper_bound
-    plot()
+    json_file = args.benchmark.split(os.path.sep)[-1].split('_')[-1] + \
+        '_time_taken.json'
+    plot(args.benchmark, json_file, args.upper_bound)
     plt.show()
