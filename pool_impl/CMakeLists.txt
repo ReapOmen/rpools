@@ -46,7 +46,10 @@ set_target_properties(customnew PROPERTIES PUBLIC_HEADER
 
 # Prepare "libcustomnewdebug.so" for inject script
 add_library(customnewdebug SHARED
-  ${SRC}/tools/AllocCollector.cpp)
+  ${SRC}/tools/AllocCollector.cpp
+  ${SRC}/custom_operators/debug/custom_new_delete_debug.cpp)
+set_target_properties(customnewdebug PROPERTIES PUBLIC_HEADER
+  ${SRC}/custom_operators/debug/custom_new_delete_debug.h)
 target_include_directories(customnewdebug PRIVATE ./libs/json/single_include)
 
 # Prepare "libcustomnew2.so" for inject script
