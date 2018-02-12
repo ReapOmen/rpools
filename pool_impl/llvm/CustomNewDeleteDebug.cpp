@@ -12,6 +12,7 @@
 #include <algorithm>
 #include <vector>
 #include <map>
+#include <string>
 
 #include "common.h"
 
@@ -28,7 +29,7 @@ namespace {
  *  of `operator delete` with `custom_delete`
  *  @note All versions of operator new and delete are considered.
  */
-struct CustomNewDelete : public BasicBlockPass {
+struct CustomNewDeleteDebug : public BasicBlockPass {
   static char ID;
   /** Mangled custom_new function name. */
   static const StringRef CUSTOM_NEW_NAME;
@@ -45,7 +46,25 @@ struct CustomNewDelete : public BasicBlockPass {
   /** A mapping from operator news to their `custom_new` correspondent. */
   static const map<StringRef, Function**> OP_TO_CUSTOM;
 
-  CustomNewDelete() : BasicBlockPass(ID) {}
+  static std::string getTypeName(const Type& t_type) {
+    if (t_type.isPointerTy()) {
+      return getTypeName(*t_type.getPointerElementType()) + "*";
+    } else if (t_type.isStructTy()) {
+      return t_type.getStructName();
+    } else if (t_type.isFloatTy()) {
+      return "float";
+    } else if (t_type.isDoubleTy()) {
+      return "double";
+    }  else if (t_type.isArrayTy()) {
+      return getTypeName(*t_type.getArrayElementType()) +
+        "[" + std::to_string(t_type.getArrayNumElements()) + "]";
+    } else if (t_type.isIntegerTy()) {
+      return std::string("uint") + std::to_string(t_type.getIntegerBitWidth());
+    }
+    return "Unknown Type";
+  }
+
+  CustomNewDeleteDebug() : BasicBlockPass(ID) {}
 
   /**
    *  Insert a call to `custom_new` after each `operator new` call and
@@ -64,13 +83,22 @@ struct CustomNewDelete : public BasicBlockPass {
         if (func) {
           StringRef name = getDemangledName(func->getName());
           IRBuilder<> builder(&ci);
+          auto unknownType = bb.getModule()->getGlobalVariable("Unknown Type");
+          auto gep = builder.CreateInBoundsGEP(
+            unknownType->getType()->getPointerElementType(),
+            unknownType,
+            {builder.getInt32(0),
+             builder.getInt32(0)}
+          );
           if (isNew(name)) {
             // replace the call to operator new with custom_new
             // but make sure the first argument of operator new
             // is copied into custom new as well!
             ci.replaceAllUsesWith(
               builder.CreateCall(*OP_TO_CUSTOM.at(name),
-                                 { ci.getOperand(0), builder.getInt64(0) })
+                                 { ci.getOperand(0),
+                                   builder.getInt64(alignof(max_align_t)),
+                                   gep })
             );
             // save call instruction to remove it later
             insts.push_back(&ci);
@@ -88,15 +116,23 @@ struct CustomNewDelete : public BasicBlockPass {
           if (func) {
             StringRef name = getDemangledName(func->getName());
             IRBuilder<> builder(&ii);
+            auto unknownType = bb.getModule()->getGlobalVariable("Unknown Type");
+            auto gep = builder.CreateInBoundsGEP(
+              unknownType->getType()->getPointerElementType(),
+              unknownType,
+              {builder.getInt32(0),
+               builder.getInt32(0)}
+            );
             if (isNew(name)) {
+              // InvokeInsts seem to not hold the type, therefore we will
+              // assume the largest alignment possible
               InvokeInst* customNewInvoke =
-                // InvokeInsts seem to not hold the type, therefore we will
-                // assume the largest alignment possible
                 builder.CreateInvoke(*OP_TO_CUSTOM.at(name),
                                      ii.getNormalDest(),
                                      ii.getUnwindDest(),
                                      { ii.getOperand(0),
-                                       builder.getInt64(alignof(max_align_t)) });
+                                       builder.getInt64(alignof(max_align_t)),
+                                       gep });
               AttributeSet attrs;
               attrs.addAttribute(ii.getContext(), 0, Attribute::NoAlias);
               customNewInvoke->setAttributes(attrs);
@@ -117,7 +153,9 @@ struct CustomNewDelete : public BasicBlockPass {
     // custom_new type definition: void* custom_new(size_t, size_t)
     FunctionType* customNewType = FunctionType::get(
       Type::getInt8PtrTy(context),
-      { Type::getInt64Ty(context), Type::getInt64Ty(context) },
+      { Type::getInt64Ty(context),
+        Type::getInt64Ty(context),
+        Type::getInt8PtrTy(context) },
       false
     );
     // add the declaration of custom_new into the module
@@ -138,6 +176,15 @@ struct CustomNewDelete : public BasicBlockPass {
     // same for custom_delete
     mod.getOrInsertFunction(CUSTOM_DELETE_NAME, customDeleteType);
     CUSTOM_DELETE_FUNC = mod.getFunction(CUSTOM_DELETE_NAME);
+
+    auto str = ConstantDataArray::getString(mod.getContext(),
+                                            "Unknown Type");
+    mod.getOrInsertGlobal("Unknown Type", str->getType());
+    auto gv = mod.getGlobalVariable("Unknown Type");
+    gv->setConstant(true);
+    gv->setAlignment(1);
+    gv->setLinkage(GlobalValue::LinkageTypes::ExternalLinkage);
+    gv->setInitializer(str);
     return true;
   }
 
@@ -168,12 +215,22 @@ struct CustomNewDelete : public BasicBlockPass {
               BitCastInst& bci = cast<BitCastInst>(*nextInst);
               PointerType& pt = cast<PointerType>(*bci.getDestTy());
               Type* type = pt.getPointerElementType();
+              std::string typeName = getTypeName(*type);
               size_t alignment = dataLayout.getPrefTypeAlignment(type);
+              auto str = ConstantDataArray::getString(bb.getContext(),
+                                                      typeName);
+              mod->getOrInsertGlobal(typeName, str->getType());
+              auto gl = mod->getGlobalVariable(typeName);
+              gl->setConstant(true);
+              gl->setAlignment(1);
+              gl->setLinkage(GlobalValue::LinkageTypes::ExternalLinkage);
+              gl->setInitializer(str);
+              auto gep = builder.CreateInBoundsGEP(str->getType(),
+                                                   gl,
+                                                   {builder.getInt32(0),
+                                                    builder.getInt32(0)});
               ci.setOperand(1, builder.getInt64(alignment));
-            } else {
-              // if the BitCastInst was not present, we will choose
-              // the largest alignment possible
-              ci.setOperand(1, builder.getInt64(alignof(max_align_t)));
+              ci.setOperand(2, gep);
             }
           }
         }
@@ -181,34 +238,36 @@ struct CustomNewDelete : public BasicBlockPass {
     }
     return true;
   }
-}; // end of struct CustomNewDelete
+}; // end of struct CustomNewDeleteDebug
 }  // end of anonymous namespace
 
-char CustomNewDelete::ID = 0;
-const StringRef CustomNewDelete::CUSTOM_NEW_NAME = "_Z10custom_newmm";
-const StringRef CustomNewDelete::CUSTOM_NEW_NO_THROW_NAME =
-  "_Z19custom_new_no_throwmm";
-const StringRef CustomNewDelete::CUSTOM_DELETE_NAME = "_Z13custom_deletePv";
+char CustomNewDeleteDebug::ID = 0;
+const StringRef CustomNewDeleteDebug::CUSTOM_NEW_NAME =
+  "_Z10custom_newmmPKc";
+const StringRef CustomNewDeleteDebug::CUSTOM_NEW_NO_THROW_NAME =
+  "_Z19custom_new_no_throwmmPKc";
+const StringRef CustomNewDeleteDebug::CUSTOM_DELETE_NAME =
+  "_Z13custom_deletePv";
 
-Function* CustomNewDelete::CUSTOM_NEW_FUNC = nullptr;
-Function* CustomNewDelete::CUSTOM_NEW_NO_THROW_FUNC = nullptr;
-Function* CustomNewDelete::CUSTOM_DELETE_FUNC = nullptr;
+Function* CustomNewDeleteDebug::CUSTOM_NEW_FUNC = nullptr;
+Function* CustomNewDeleteDebug::CUSTOM_NEW_NO_THROW_FUNC = nullptr;
+Function* CustomNewDeleteDebug::CUSTOM_DELETE_FUNC = nullptr;
 
-const map<StringRef, Function**> CustomNewDelete::OP_TO_CUSTOM = {
+const map<StringRef, Function**> CustomNewDeleteDebug::OP_TO_CUSTOM = {
   { NEW_OPS[0], &CUSTOM_NEW_FUNC },
   { NEW_OPS[1], &CUSTOM_NEW_FUNC },
   { NEW_NO_THROW_OPS[0], &CUSTOM_NEW_NO_THROW_FUNC },
   { NEW_NO_THROW_OPS[1], &CUSTOM_NEW_NO_THROW_FUNC }
 };
 
-static RegisterPass<CustomNewDelete> X("custom new delete",
-                                       "CustomNewDelete Pass",
-                                       false /* Only looks at CFG */,
-                                       false /* Analysis Pass */);
+static RegisterPass<CustomNewDeleteDebug> X("custom new delete debug",
+                                            "CustomNewDeleteDebug Pass",
+                                            false /* Only looks at CFG */,
+                                            false /* Analysis Pass */);
 
 static void registerMyPass(const PassManagerBuilder &,
                            PassManagerBase &PM) {
-  PM.add(new CustomNewDelete());
+  PM.add(new CustomNewDeleteDebug());
 }
 static RegisterStandardPasses
 RegisterMyPass(PassManagerBuilder::EP_EarlyAsPossible,

@@ -8,29 +8,27 @@
 #include <thread>
 #include <chrono>
 
+#include "nlohmann/json.hpp"
 #include "mallocator.h"
 
 class AllocCollector {
 public:
     AllocCollector();
-    void addObject(size_t t_size);
-    void removeObject(size_t t_size);
-    void addAllocation(size_t t_size);
-    void removeAllocation(size_t t_size);
-    void addOverhead(size_t t_size);
-    void removeOverhead(size_t t_size);
+    void addObject(size_t t_size, size_t t_align,
+                   const char* t_name, void* t_ptr);
+    void removeObject(void* t_ptr);
     void takeSnapshot();
     virtual ~AllocCollector();
 private:
     size_t m_snapshotCount;
-    size_t m_overheads;
-    std::ofstream m_outputFile, m_objectsFile;
-    std::map<size_t, size_t,
-             std::less<size_t>,
-             mallocator<std::pair<const size_t, size_t>>> m_allocs;
-    std::map<size_t, size_t,
-             std::less<size_t>,
-             mallocator<std::pair<const size_t, size_t>>> m_objects;
+    std::ofstream m_objectsFile;
+    std::map<void*, std::string, std::less<void*>,
+             mallocator<std::pair<const void*, std::string>>> m_name;
+    std::map<std::string, std::pair<size_t, size_t>,
+             std::less<std::string>,
+             mallocator<std::pair<std::string, std::pair<size_t, size_t>>>
+             > m_numOfObjects;
+    nlohmann::json m_snapshots;
     std::mutex m_mapLock;
     std::condition_variable m_cv;
     std::thread m_snapshotThread;
