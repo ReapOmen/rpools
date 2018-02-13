@@ -20,37 +20,27 @@ add_library(gllinkedpool SHARED
   ${SRC}/avltree/avl_utils.c
   ${SRC}/tools/LMLock.cpp
   ${SRC}/pool_allocators/GlobalLinkedPool.cpp)
-set_target_properties(gllinkedpool PROPERTIES PUBLIC_HEADER
-  ${SRC}/pool_allocators/GlobalLinkedPool.h)
 
 # Prepare "nsgllinkedpool" library for linking
 add_library(nsgllinkedpool SHARED
   ${SRC}/avltree/avltree.c
   ${SRC}/avltree/avl_utils.c
   ${SRC}/pool_allocators/NSGlobalLinkedPool.cpp)
-set_target_properties(nsgllinkedpool PROPERTIES PUBLIC_HEADER
-  ${SRC}/pool_allocators/NSGlobalLinkedPool.h)
-
-# Prepare "globalpools" library for linking
-add_library(globalpools SHARED
-  ${SRC}/tools/LMLock.cpp
-  ${SRC}/custom_operators/custom_new_delete_v1/GlobalPools.cpp)
-target_link_libraries(globalpools PUBLIC nsgllinkedpool)
 
 # Prepare "libcustomnew.so" for inject script
 add_library(customnew SHARED
+  ${SRC}/tools/LMLock.cpp
+  ${SRC}/custom_operators/custom_new_delete_v1/GlobalPools.cpp
   ${SRC}/custom_operators/custom_new_delete_v1/custom_new_delete.cpp)
-target_link_libraries(customnew PRIVATE globalpools)
-set_target_properties(customnew PROPERTIES PUBLIC_HEADER
-  ${SRC}/custom_operators/custom_new_delete_v1/custom_new_delete.h)
+target_link_libraries(customnew nsgllinkedpool)
 
 # Prepare "libcustomnewdebug.so" for inject script
 add_library(customnewdebug SHARED
   ${SRC}/tools/AllocCollector.cpp
   ${SRC}/custom_operators/debug/custom_new_delete_debug.cpp)
-set_target_properties(customnewdebug PROPERTIES PUBLIC_HEADER
-  ${SRC}/custom_operators/debug/custom_new_delete_debug.h)
 target_include_directories(customnewdebug PRIVATE ./libs/json/single_include)
+
+install(TARGETS nsgllinkedpool customnew customnewdebug DESTINATION /usr/local/lib)
 
 # Prepare "libcustomnew2.so" for inject script
 add_library(customnew2 SHARED

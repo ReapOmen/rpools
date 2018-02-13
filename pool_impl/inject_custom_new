@@ -1,10 +1,10 @@
 #!/bin/sh
 if [ -z "$2" ];
 then
-    LD_PRELOAD="$PWD/build/libcustomnew.so" $1
+    LD_PRELOAD="/usr/local/lib/libcustomnew.so" $1
 else
     if [ $2 = "-gdbn" ]; then
-        LD_PRELOAD="$PWD/build/libcustomnew.so" gdb --args $1
+        LD_PRELOAD="/usr/local/lib/libcustomnew.so" gdb --args $1
     else
         if [ $2 = "-v2" ]; then
             LD_PRELOAD="$PWD/build/libcustomnew2.so" $1
