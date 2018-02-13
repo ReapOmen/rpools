@@ -90,7 +90,8 @@ def plot_time(x, y, subplot, title, labels):
 if __name__ == "__main__":
     import os
     import argparse
-    parser = argparse.ArgumentParser(description='Plot test data')
+    parser = argparse.ArgumentParser(description='Plot elapsed_time'
+                                     ' benchmarks')
     parser.add_argument('--benchmark', '-b', help='Which benchmark to run '
                         '(default: bench_normal)',
                         default="./build/benchmarks/elapsed_time/bench_normal")

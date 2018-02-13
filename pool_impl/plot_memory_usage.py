@@ -74,7 +74,8 @@ def subplot(subplot_num, title, x, y, labels, format):
 if __name__ == '__main__':
     import argparse
     import os
-    parser = argparse.ArgumentParser(description='Plot test data')
+    parser = argparse.ArgumentParser(description='Plot memory usage '
+                                     'benchmarks.')
     parser.add_argument('--upper-bound', '-n',
                         help='The number of allocations (default: 100000)',
                         type=str, default='100000')
