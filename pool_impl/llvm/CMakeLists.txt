@@ -4,3 +4,5 @@ add_library(LLVMCustomNewPass MODULE
 add_library(LLVMCustomNewPassDebug MODULE
   common.cpp
   CustomNewDeleteDebug.cpp)
+
+install(TARGETS LLVMCustomNewPass DESTINATION /usr/local/lib)

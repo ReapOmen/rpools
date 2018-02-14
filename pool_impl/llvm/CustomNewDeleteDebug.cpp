@@ -135,8 +135,8 @@ struct CustomNewDeleteDebug : public BasicBlockPass {
       if (isa<CallInst>(inst)) {
         CallInst& ci = cast<CallInst>(inst);
         auto func = ci.getCalledFunction();
-        if (func) {
-          StringRef name = getDemangledName(func->getName());
+        if (func && func->getName().data()) {
+          std::string name = getDemangledName(func->getName().str());
           if (isNew(name)) {
             IRBuilder<> builder(&ci);
             Instruction* nextInst = inst.getNextNode();
@@ -178,7 +178,7 @@ struct CustomNewDeleteDebug : public BasicBlockPass {
           InvokeInst& ii = cast<InvokeInst>(inst);
           auto func = ii.getCalledFunction();
           if (func) {
-            StringRef name = getDemangledName(func->getName());
+            std::string name = getDemangledName(func->getName().str());
             if (isNew(name)) {
               IRBuilder<> builder(&ii);
               // InvokeInsts seem to not hold the type, therefore we will
@@ -201,10 +201,10 @@ struct CustomNewDeleteDebug : public BasicBlockPass {
         }
       }
     }
-    // remove all calls to operator new/delete
-    while (insts.size() > 0) {
-      insts.back()->removeFromParent();
-      insts.pop_back();
+    // remove all calls to operator new/delete from the code
+    // because custom_new/delete was inserted instead
+    for (auto inst : insts) {
+      inst->eraseFromParent();
     }
     return true;
   }

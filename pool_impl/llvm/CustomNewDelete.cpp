@@ -85,11 +85,10 @@ struct CustomNewDelete : public BasicBlockPass {
       if (isa<CallInst>(inst)) {
         CallInst& ci = cast<CallInst>(inst);
         auto func = ci.getCalledFunction();
-        if (func) {
-          StringRef name = getDemangledName(func->getName());
+        if (func && func->getName().data()) {
+          std::string name = getDemangledName(func->getName().str());
           IRBuilder<> builder(&ci);
           if (isNew(name)) {
-            // assume a maximum alignment
             size_t alignment = alignof(std::max_align_t);
             Instruction* nextInst = inst.getNextNode();
             // check if the next instruction is a bitcast
@@ -122,7 +121,7 @@ struct CustomNewDelete : public BasicBlockPass {
           InvokeInst& ii = cast<InvokeInst>(inst);
           auto func = ii.getCalledFunction();
           if (func) {
-            StringRef name = getDemangledName(func->getName());
+            std::string name = getDemangledName(func->getName().str());
             IRBuilder<> builder(&ii);
             if (isNew(name)) {
               // InvokeInsts seem to not hold the type, therefore we will
@@ -148,7 +147,7 @@ struct CustomNewDelete : public BasicBlockPass {
     // remove all calls to operator new/delete from the code
     // because custom_new/delete was inserted instead
     for (auto inst : insts) {
-      inst->removeFromParent();
+      inst->eraseFromParent();
     }
     return true;
   }
