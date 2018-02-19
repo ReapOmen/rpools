@@ -88,6 +88,28 @@ struct CustomNewDeleteDebug : public BasicBlockPass {
     );
   }
 
+  static std::pair<size_t, Value*>
+  getAlignmentAndNameFromInst(llvm::Instruction* inst,
+                              const DataLayout& dataLayout,
+                              IRBuilder<>& builder) {
+    size_t alignment = alignof(max_align_t);
+    Value* gep = nullptr;
+    // check if the instruction is a bitcast
+    // because it holds the type, therefore the alignment
+    if (inst && isa<BitCastInst>(*inst)) {
+      BitCastInst& bci = cast<BitCastInst>(*inst);
+      PointerType& pt = cast<PointerType>(*bci.getDestTy());
+      Type* type = pt.getPointerElementType();
+      alignment = dataLayout.getPrefTypeAlignment(type);
+      // generate a pointer to the name of the type
+      std::string typeName = getTypeName(*type);
+      gep = getGEP(builder, getOrInsertStr(inst->getModule(), typeName));
+    } else {
+      gep = getGEP(builder);
+    }
+    return std::make_pair(alignment, gep);
+  }
+
   CustomNewDeleteDebug() : BasicBlockPass(ID) {}
 
   using BasicBlockPass::doInitialization;
@@ -139,38 +161,17 @@ struct CustomNewDeleteDebug : public BasicBlockPass {
           std::string name = getDemangledName(func->getName().str());
           if (isNew(name)) {
             IRBuilder<> builder(&ci);
-            Instruction* nextInst = inst.getNextNode();
-            size_t alignment = alignof(std::max_align_t);
-            Value* gep = nullptr; // pointer to the name of the type
-            // check CustomNewDelete.cpp for more info
-            if (nextInst && isa<BitCastInst>(*nextInst)) {
-              BitCastInst& bci = cast<BitCastInst>(*nextInst);
-              PointerType& pt = cast<PointerType>(*bci.getDestTy());
-              Type* type = pt.getPointerElementType();
-              alignment = dataLayout.getPrefTypeAlignment(type);
-              // generate a pointer to the name of the type
-              std::string typeName = getTypeName(*type);
-              gep = getGEP(builder, getOrInsertStr(mod, typeName));
-            } else {
-              // no bitcast => unknown type
-              gep = getGEP(builder);
-            }
-            // replace the call to operator new with custom_new
-            // but make sure the first argument of operator new
-            // is copied into custom new as well!
+            auto res = getAlignmentAndNameFromInst(inst.getNextNode(),
+                                                   dataLayout,
+                                                   builder);
             ci.replaceAllUsesWith(
               builder.CreateCall(*OP_TO_CUSTOM.at(name),
                                  { ci.getOperand(0),
-                                   builder.getInt64(alignment),
-                                   gep })
+                                   builder.getInt64(res.first),
+                                   res.second })
             );
-            // save call instruction to remove it later
             insts.push_back(&ci);
           } else if (isDelete(name)) {
-            // we are processing an operator delete call
-            // because custom_delete and operator delete take the same
-            // type and number of arguments, we can just change the
-            // function called in this case call custom_delete
             ci.setCalledFunction(CUSTOM_DELETE_FUNC);
           }
         }
@@ -181,15 +182,18 @@ struct CustomNewDeleteDebug : public BasicBlockPass {
             std::string name = getDemangledName(func->getName().str());
             if (isNew(name)) {
               IRBuilder<> builder(&ii);
-              // InvokeInsts seem to not hold the type, therefore we will
-              // assume the largest alignment possible
+              auto res = getAlignmentAndNameFromInst(
+                ii.getNormalDest()->getFirstNonPHI(),
+                dataLayout,
+                builder
+              );
               InvokeInst* customNewInvoke =
                 builder.CreateInvoke(*OP_TO_CUSTOM.at(name),
                                      ii.getNormalDest(),
                                      ii.getUnwindDest(),
                                      { ii.getOperand(0),
-                                       builder.getInt64(alignof(max_align_t)),
-                                       getGEP(builder) });
+                                       builder.getInt64(res.first),
+                                       res.second });
               AttributeSet attrs;
               attrs.addAttribute(ii.getContext(), 0, Attribute::NoAlias);
               customNewInvoke->setAttributes(attrs);
@@ -201,8 +205,6 @@ struct CustomNewDeleteDebug : public BasicBlockPass {
         }
       }
     }
-    // remove all calls to operator new/delete from the code
-    // because custom_new/delete was inserted instead
     for (auto inst : insts) {
       inst->eraseFromParent();
     }

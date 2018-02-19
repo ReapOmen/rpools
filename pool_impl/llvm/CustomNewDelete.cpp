@@ -45,6 +45,20 @@ struct CustomNewDelete : public BasicBlockPass {
   /** A mapping from operator news to their `custom_new` correspondent. */
   static const map<StringRef, Function**> OP_TO_CUSTOM;
 
+  static size_t getAlignmentFromInst(llvm::Instruction* inst,
+                                     const DataLayout& dataLayout) {
+    size_t alignment = alignof(max_align_t);
+    // check if the instruction is a bitcast
+    // because it holds the type, therefore the alignment
+    if (inst && isa<BitCastInst>(*inst)) {
+      BitCastInst& bci = cast<BitCastInst>(*inst);
+      PointerType& pt = cast<PointerType>(*bci.getDestTy());
+      Type* type = pt.getPointerElementType();
+      alignment = dataLayout.getPrefTypeAlignment(type);
+    }
+    return alignment;
+  }
+
   CustomNewDelete() : BasicBlockPass(ID) {}
 
   using BasicBlockPass::doInitialization;
@@ -73,6 +87,7 @@ struct CustomNewDelete : public BasicBlockPass {
     );
     mod.getOrInsertFunction(CUSTOM_DELETE_NAME, customDeleteType);
     CUSTOM_DELETE_FUNC = mod.getFunction(CUSTOM_DELETE_NAME);
+
     return true;
   }
 
@@ -89,16 +104,10 @@ struct CustomNewDelete : public BasicBlockPass {
           std::string name = getDemangledName(func->getName().str());
           IRBuilder<> builder(&ci);
           if (isNew(name)) {
-            size_t alignment = alignof(std::max_align_t);
-            Instruction* nextInst = inst.getNextNode();
-            // check if the next instruction is a bitcast
-            // because it holds the type, therefore the alignment
-            if (nextInst && isa<BitCastInst>(*nextInst)) {
-              BitCastInst& bci = cast<BitCastInst>(*nextInst);
-              PointerType& pt = cast<PointerType>(*bci.getDestTy());
-              Type* type = pt.getPointerElementType();
-              alignment = dataLayout.getPrefTypeAlignment(type);
-            }
+            // next inst might be a BitCast which holds the alignment of the
+            // type being allocated
+            size_t alignment = getAlignmentFromInst(inst.getNextNode(),
+                                                    dataLayout);
             // replace the call to operator new with custom_new
             // but make sure the first argument of operator new
             // is copied into custom new as well!
@@ -124,14 +133,17 @@ struct CustomNewDelete : public BasicBlockPass {
             std::string name = getDemangledName(func->getName().str());
             IRBuilder<> builder(&ii);
             if (isNew(name)) {
-              // InvokeInsts seem to not hold the type, therefore we will
-              // assume the largest alignment possible
+              // InvokeInsts seem to hold the BitCastInst which contains the
+              // type being allocated in the NormalDest BasicBlock
+              size_t alignment =
+                getAlignmentFromInst(ii.getNormalDest()->getFirstNonPHI(),
+                                     dataLayout);
               InvokeInst* customNewInvoke =
                 builder.CreateInvoke(*OP_TO_CUSTOM.at(name),
                                      ii.getNormalDest(),
                                      ii.getUnwindDest(),
                                      { ii.getOperand(0),
-                                       builder.getInt64(alignof(max_align_t)) }
+                                       builder.getInt64(alignment) }
                 );
               AttributeSet attrs;
               attrs.addAttribute(ii.getContext(), 0, Attribute::NoAlias);
