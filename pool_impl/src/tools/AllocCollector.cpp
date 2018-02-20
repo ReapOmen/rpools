@@ -23,7 +23,7 @@ AllocCollector::~AllocCollector() {
 
 void AllocCollector::addObject(size_t t_size, size_t t_align,
                                const char* t_name, size_t t_baseSize,
-                               void* t_ptr) {
+                               const char* t_funcName, void* t_ptr) {
     if (!m_threadStarted) {
         m_threadStarted = true;
         m_snapshotThread = std::thread(&AllocCollector::run, this);
@@ -36,7 +36,7 @@ void AllocCollector::addObject(size_t t_size, size_t t_align,
         name += "[" + std::to_string(t_size / t_baseSize) + "]";
     }
     name += " (size:" + std::to_string(t_size) + ", alignment:"
-        + std::to_string(t_align)  + ")";
+        + std::to_string(t_align)  + ", func:" + t_funcName + ")";
     m_name[t_ptr] = name;
     auto& objStat = m_numOfObjects[name];
     ++objStat.first;

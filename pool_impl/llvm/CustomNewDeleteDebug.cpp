@@ -28,6 +28,15 @@ using std::tuple;
 using std::get;
 
 namespace {
+
+struct TypeMetadata {
+  size_t alignment = alignof(max_align_t);
+  Value* name = nullptr;
+  size_t size = 0;
+  Value* funcName = nullptr;
+  TypeMetadata() = default;
+};
+
 /**
  *  Change all occurences of `operator new` with `custom_new` and all occurences
  *  of `operator delete` with `custom_delete`
@@ -35,7 +44,7 @@ namespace {
  */
 struct CustomNewDeleteDebug : public BasicBlockPass {
   static char ID;
-  static const string UNKNOWN_TYPE_NAME;
+  static const string UNKNOWN_STR;
   /** Mangled custom_new function name. */
   static const StringRef CUSTOM_NEW_NAME;
   /** Mangled custom_new_no_throw function name. */
@@ -50,8 +59,12 @@ struct CustomNewDeleteDebug : public BasicBlockPass {
   static Function* CUSTOM_DELETE_FUNC;
   /** A mapping from operator news to their `custom_new` correspondent. */
   static const map<StringRef, Function**> OP_TO_CUSTOM;
-  static GlobalVariable* UNKNOWN_TYPE_VAR;
+  static GlobalVariable* UNKNOWN_TYPE, * UNKNOWN_FUNC;
 
+  /**
+   * @param t_type the type whose name is returned
+   * @return an approximation of the type's name.
+   */
   static string getTypeName(const Type& t_type) {
     if (t_type.isPointerTy()) {
       return getTypeName(*t_type.getPointerElementType()) + "*";
@@ -68,14 +81,25 @@ struct CustomNewDeleteDebug : public BasicBlockPass {
     } else if (t_type.isIntegerTy()) {
       return string("uint") + std::to_string(t_type.getIntegerBitWidth());
     }
-    return UNKNOWN_TYPE_NAME;
+    return UNKNOWN_STR;
   }
 
-  static GlobalVariable* getOrInsertStr(Module* t_mod, const string& t_str) {
+  /**
+   * Inserts the given string into the module.
+   * @param t_mod the module in which the string in inserted
+   * @param t_str the string to be inserted
+   * @param t_isFunc true if the string represents a function name or a
+   *                 type name
+   * @return a GlobalVariable which represents the given string in the module.
+   */
+  static GlobalVariable* getOrInsertStr(Module* t_mod, const string& t_str,
+                                        bool t_isFunc) {
     auto str = ConstantDataArray::getString(t_mod->getContext(),
                                             t_str);
-    t_mod->getOrInsertGlobal(t_str, str->getType());
-    auto gv = t_mod->getGlobalVariable(t_str);
+    string extendedStr = t_str;
+    extendedStr += t_isFunc ? "_func_name__" : "_type_name__";
+    t_mod->getOrInsertGlobal(extendedStr, str->getType());
+    auto gv = t_mod->getGlobalVariable(extendedStr);
     gv->setConstant(true);
     gv->setAlignment(1);
     gv->setLinkage(GlobalValue::LinkageTypes::ExternalLinkage);
@@ -83,18 +107,27 @@ struct CustomNewDeleteDebug : public BasicBlockPass {
     return gv;
   }
 
-  static Value* getGEP(IRBuilder<>& builder,
-                       GlobalVariable* t_gv = UNKNOWN_TYPE_VAR) {
-    return builder.CreateInBoundsGEP(
+  /**
+   * @param t_builder a builder used to generate Values
+   * @param t_gv a GlobalVariable to which a pointer is created
+   * @return a GEP which points to the given GlobalVariable.
+   */
+  static Value* getGEP(IRBuilder<>& t_builder,
+                       GlobalVariable* t_gv) {
+    return t_builder.CreateInBoundsGEP(
             t_gv->getType()->getPointerElementType(),
             t_gv,
-            { builder.getInt32(0),
-              builder.getInt32(0) }
+            { t_builder.getInt32(0),
+              t_builder.getInt32(0) }
     );
   }
 
-  static string getNameFromFunc(Function* func) {
-    string name = getDemangledName(func->getName());
+  /**
+   * @param t_func the Function from which the name is extracted
+   * @return the template parameters of the given function.
+   */
+  static string getNameFromFunc(Function* t_func) {
+    string name = getDemangledName(t_func->getName());
     // if we can find allocate in the name of the function
     // that means that the function which calls new is an
     // allocator -> the name holds the type of allocator
@@ -119,31 +152,34 @@ struct CustomNewDeleteDebug : public BasicBlockPass {
    * @param inst an instruction which might be a BitCast
    * @param dataLayout a DataLayout of the current Module
    * @param builder an IRBuilder
-   * @return a pair containing the aligment and a Value which represents
-   *         a GEP which points to the name of the type.
+   * @return a TypeMetadata with reasonable values in case the given
+   *         Instruction is not a BitCastInst.
    */
-  static
-  tuple<size_t, Value*, size_t> getTypeMetadata(Instruction* inst,
-                                                const DataLayout& dataLayout,
-                                                IRBuilder<>& builder) {
-    size_t alignment = alignof(max_align_t);
-    Value* gep = nullptr;
-    size_t size = 0;
+  static TypeMetadata getTypeMetadata(Instruction* inst,
+                                      const DataLayout& dataLayout,
+                                      IRBuilder<>& builder) {
+    TypeMetadata tm;
     // check if the instruction is a bitcast
     // because it holds the type, therefore the alignment
     if (inst && isa<BitCastInst>(*inst)) {
       BitCastInst& bci = cast<BitCastInst>(*inst);
       PointerType& pt = cast<PointerType>(*bci.getDestTy());
       Type* type = pt.getPointerElementType();
-      alignment = dataLayout.getPrefTypeAlignment(type);
-      size = dataLayout.getTypeAllocSize(type);
-      string typeName = getNameFromFunc(inst->getFunction());
+      tm.alignment = dataLayout.getPrefTypeAlignment(type);
+      tm.size = dataLayout.getTypeAllocSize(type);
+      Function* func = inst->getFunction();
+      string typeName = getNameFromFunc(func);
       typeName = typeName == "" ? getTypeName(*type) : typeName;
-      gep = getGEP(builder, getOrInsertStr(inst->getModule(), typeName));
+      tm.name = getGEP(builder, getOrInsertStr(inst->getModule(),
+                                               typeName, false));
+      string funcName = getDemangledName(func->getName());
+      tm.funcName = getGEP(builder,
+                           getOrInsertStr(inst->getModule(), funcName, true));
     } else {
-      gep = getGEP(builder);
+      tm.name = getGEP(builder, UNKNOWN_TYPE);
+      tm.funcName = getGEP(builder, UNKNOWN_FUNC);
     }
-    return std::make_tuple(alignment, gep, size);
+    return tm;
   }
 
   CustomNewDeleteDebug() : BasicBlockPass(ID) {}
@@ -152,13 +188,15 @@ struct CustomNewDeleteDebug : public BasicBlockPass {
   bool doInitialization(Module& mod) override {
     LLVMContext& context = mod.getContext();
 
-    // custom_new type definition: void* custom_new(size_t, size_t)
+    // custom_new type definition:
+    // void* custom_new(size_t, size_t, char*, size_t, char*)
     FunctionType* customNewType = FunctionType::get(
       Type::getInt8PtrTy(context),
       { Type::getInt64Ty(context),
         Type::getInt64Ty(context),
         Type::getInt8PtrTy(context),
-        Type::getInt64Ty(context) },
+        Type::getInt64Ty(context),
+        Type::getInt8PtrTy(context)},
       false
     );
     // add the declaration of custom_new into the module
@@ -180,8 +218,9 @@ struct CustomNewDeleteDebug : public BasicBlockPass {
     mod.getOrInsertFunction(CUSTOM_DELETE_NAME, customDeleteType);
     CUSTOM_DELETE_FUNC = mod.getFunction(CUSTOM_DELETE_NAME);
 
-    // create the UNKNOWN_TYPE string
-    UNKNOWN_TYPE_VAR = getOrInsertStr(&mod, UNKNOWN_TYPE_NAME);
+    // create the UNKNOWN string
+    UNKNOWN_TYPE = getOrInsertStr(&mod, UNKNOWN_STR, false);
+    UNKNOWN_FUNC = getOrInsertStr(&mod, UNKNOWN_STR, true);
 
     return true;
   }
@@ -199,13 +238,14 @@ struct CustomNewDeleteDebug : public BasicBlockPass {
           std::string name = getDemangledName(func->getName().str());
           if (isNew(name)) {
             IRBuilder<> builder(&ci);
-            auto res = getTypeMetadata(inst.getNextNode(), dataLayout, builder);
+            auto tm = getTypeMetadata(inst.getNextNode(), dataLayout, builder);
             ci.replaceAllUsesWith(
               builder.CreateCall(*OP_TO_CUSTOM.at(name),
                                  { ci.getOperand(0),
-                                   builder.getInt64(get<0>(res)),
-                                   get<1>(res),
-                                   builder.getInt64(get<2>(res)) })
+                                   builder.getInt64(tm.alignment),
+                                   tm.name,
+                                   builder.getInt64(tm.size),
+                                   tm.funcName })
             );
             insts.push_back(&ci);
           } else if (isDelete(name)) {
@@ -219,7 +259,7 @@ struct CustomNewDeleteDebug : public BasicBlockPass {
             std::string name = getDemangledName(func->getName().str());
             if (isNew(name)) {
               IRBuilder<> builder(&ii);
-              auto res = getTypeMetadata(
+              auto tm = getTypeMetadata(
                 ii.getNormalDest()->getFirstNonPHI(),
                 dataLayout,
                 builder
@@ -229,9 +269,10 @@ struct CustomNewDeleteDebug : public BasicBlockPass {
                                      ii.getNormalDest(),
                                      ii.getUnwindDest(),
                                      { ii.getOperand(0),
-                                       builder.getInt64(get<0>(res)),
-                                       get<1>(res),
-                                       builder.getInt64(get<2>(res)) });
+                                       builder.getInt64(tm.alignment),
+                                       tm.name,
+                                       builder.getInt64(tm.size),
+                                       tm.funcName });
               AttributeSet attrs;
               attrs.addAttribute(ii.getContext(), 0, Attribute::NoAlias);
               customNewInvoke->setAttributes(attrs);
@@ -252,11 +293,11 @@ struct CustomNewDeleteDebug : public BasicBlockPass {
 }  // end of anonymous namespace
 
 char CustomNewDeleteDebug::ID = 0;
-const std::string CustomNewDeleteDebug::UNKNOWN_TYPE_NAME = "Unknown Type";
+const std::string CustomNewDeleteDebug::UNKNOWN_STR = "Unknown";
 const StringRef CustomNewDeleteDebug::CUSTOM_NEW_NAME =
-  "_Z10custom_newmmPKcm";
+  "_Z10custom_newmmPKcmS0_";
 const StringRef CustomNewDeleteDebug::CUSTOM_NEW_NO_THROW_NAME =
-  "_Z19custom_new_no_throwmmPKcm";
+  "_Z19custom_new_no_throwmmPKcmS0_";
 const StringRef CustomNewDeleteDebug::CUSTOM_DELETE_NAME =
   "_Z13custom_deletePv";
 
@@ -271,7 +312,8 @@ const map<StringRef, Function**> CustomNewDeleteDebug::OP_TO_CUSTOM = {
   { NEW_NO_THROW_OPS[1], &CUSTOM_NEW_NO_THROW_FUNC }
 };
 
-GlobalVariable* CustomNewDeleteDebug::UNKNOWN_TYPE_VAR = nullptr;
+GlobalVariable* CustomNewDeleteDebug::UNKNOWN_TYPE = nullptr;
+GlobalVariable* CustomNewDeleteDebug::UNKNOWN_FUNC = nullptr;
 
 static RegisterPass<CustomNewDeleteDebug> X("custom new delete debug",
                                             "CustomNewDeleteDebug Pass",
