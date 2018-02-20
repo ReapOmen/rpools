@@ -24,6 +24,8 @@ using std::map;
 using std::find;
 using std::string;
 using std::pair;
+using std::tuple;
+using std::get;
 
 namespace {
 /**
@@ -112,7 +114,7 @@ struct CustomNewDeleteDebug : public BasicBlockPass {
   }
 
   /**
-   * Extracts the alignment and the name of the type out of the given
+   * Extracts the alignment, the name and the size of the type out of the given
    * Instruction. This is possible only if the Instruction is a BitCastInst.
    * @param inst an instruction which might be a BitCast
    * @param dataLayout a DataLayout of the current Module
@@ -120,12 +122,13 @@ struct CustomNewDeleteDebug : public BasicBlockPass {
    * @return a pair containing the aligment and a Value which represents
    *         a GEP which points to the name of the type.
    */
-  static pair<size_t, Value*>
-  getAlignmentAndNameFromInst(Instruction* inst,
-                              const DataLayout& dataLayout,
-                              IRBuilder<>& builder) {
+  static
+  tuple<size_t, Value*, size_t> getTypeMetadata(Instruction* inst,
+                                                const DataLayout& dataLayout,
+                                                IRBuilder<>& builder) {
     size_t alignment = alignof(max_align_t);
     Value* gep = nullptr;
+    size_t size = 0;
     // check if the instruction is a bitcast
     // because it holds the type, therefore the alignment
     if (inst && isa<BitCastInst>(*inst)) {
@@ -133,13 +136,14 @@ struct CustomNewDeleteDebug : public BasicBlockPass {
       PointerType& pt = cast<PointerType>(*bci.getDestTy());
       Type* type = pt.getPointerElementType();
       alignment = dataLayout.getPrefTypeAlignment(type);
+      size = dataLayout.getTypeAllocSize(type);
       string typeName = getNameFromFunc(inst->getFunction());
       typeName = typeName == "" ? getTypeName(*type) : typeName;
       gep = getGEP(builder, getOrInsertStr(inst->getModule(), typeName));
     } else {
       gep = getGEP(builder);
     }
-    return std::make_pair(alignment, gep);
+    return std::make_tuple(alignment, gep, size);
   }
 
   CustomNewDeleteDebug() : BasicBlockPass(ID) {}
@@ -153,7 +157,8 @@ struct CustomNewDeleteDebug : public BasicBlockPass {
       Type::getInt8PtrTy(context),
       { Type::getInt64Ty(context),
         Type::getInt64Ty(context),
-        Type::getInt8PtrTy(context) },
+        Type::getInt8PtrTy(context),
+        Type::getInt64Ty(context) },
       false
     );
     // add the declaration of custom_new into the module
@@ -194,14 +199,13 @@ struct CustomNewDeleteDebug : public BasicBlockPass {
           std::string name = getDemangledName(func->getName().str());
           if (isNew(name)) {
             IRBuilder<> builder(&ci);
-            auto res = getAlignmentAndNameFromInst(inst.getNextNode(),
-                                                   dataLayout,
-                                                   builder);
+            auto res = getTypeMetadata(inst.getNextNode(), dataLayout, builder);
             ci.replaceAllUsesWith(
               builder.CreateCall(*OP_TO_CUSTOM.at(name),
                                  { ci.getOperand(0),
-                                   builder.getInt64(res.first),
-                                   res.second })
+                                   builder.getInt64(get<0>(res)),
+                                   get<1>(res),
+                                   builder.getInt64(get<2>(res)) })
             );
             insts.push_back(&ci);
           } else if (isDelete(name)) {
@@ -215,7 +219,7 @@ struct CustomNewDeleteDebug : public BasicBlockPass {
             std::string name = getDemangledName(func->getName().str());
             if (isNew(name)) {
               IRBuilder<> builder(&ii);
-              auto res = getAlignmentAndNameFromInst(
+              auto res = getTypeMetadata(
                 ii.getNormalDest()->getFirstNonPHI(),
                 dataLayout,
                 builder
@@ -225,8 +229,9 @@ struct CustomNewDeleteDebug : public BasicBlockPass {
                                      ii.getNormalDest(),
                                      ii.getUnwindDest(),
                                      { ii.getOperand(0),
-                                       builder.getInt64(res.first),
-                                       res.second });
+                                       builder.getInt64(get<0>(res)),
+                                       get<1>(res),
+                                       builder.getInt64(get<2>(res)) });
               AttributeSet attrs;
               attrs.addAttribute(ii.getContext(), 0, Attribute::NoAlias);
               customNewInvoke->setAttributes(attrs);
@@ -249,9 +254,9 @@ struct CustomNewDeleteDebug : public BasicBlockPass {
 char CustomNewDeleteDebug::ID = 0;
 const std::string CustomNewDeleteDebug::UNKNOWN_TYPE_NAME = "Unknown Type";
 const StringRef CustomNewDeleteDebug::CUSTOM_NEW_NAME =
-  "_Z10custom_newmmPKc";
+  "_Z10custom_newmmPKcm";
 const StringRef CustomNewDeleteDebug::CUSTOM_NEW_NO_THROW_NAME =
-  "_Z19custom_new_no_throwmmPKc";
+  "_Z19custom_new_no_throwmmPKcm";
 const StringRef CustomNewDeleteDebug::CUSTOM_DELETE_NAME =
   "_Z13custom_deletePv";
 

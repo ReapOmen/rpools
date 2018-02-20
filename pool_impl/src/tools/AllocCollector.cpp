@@ -22,7 +22,8 @@ AllocCollector::~AllocCollector() {
 }
 
 void AllocCollector::addObject(size_t t_size, size_t t_align,
-                               const char* t_name, void* t_ptr) {
+                               const char* t_name, size_t t_baseSize,
+                               void* t_ptr) {
     if (!m_threadStarted) {
         m_threadStarted = true;
         m_snapshotThread = std::thread(&AllocCollector::run, this);
@@ -31,6 +32,9 @@ void AllocCollector::addObject(size_t t_size, size_t t_align,
     std::unique_lock<std::mutex> lk(m_mapLock);
     m_cv.wait(lk, [&](){ return !m_waitingToPrint; });
     std::string name(t_name);
+    if (t_baseSize != 0) {
+        name += "[" + std::to_string(t_size / t_baseSize) + "]";
+    }
     name += " (size:" + std::to_string(t_size) + ", alignment:"
         + std::to_string(t_align)  + ")";
     m_name[t_ptr] = name;

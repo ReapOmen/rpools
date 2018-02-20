@@ -15,7 +15,7 @@ class AllocCollector {
 public:
     AllocCollector();
     void addObject(size_t t_size, size_t t_align,
-                   const char* t_name, void* t_ptr);
+                   const char* t_name, size_t t_baseSize , void* t_ptr);
     void removeObject(void* t_ptr);
     void takeSnapshot();
     virtual ~AllocCollector();
