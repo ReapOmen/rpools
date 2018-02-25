@@ -1,0 +1,18 @@
+body {
+    font-family: Helvetica, Arial, sans-serif;
+}
+
+table {
+    width: 100%;
+}
+
+#main-table {
+    color: #222222;
+    border-collapse: collapse;
+}
+
+#main-table th {
+    border: 1px solid #BABABA;
+    background: #DFDFDF;
+    font-weight: bold;
+}

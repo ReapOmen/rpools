@@ -1,0 +1,16 @@
+{
+  "name": "debug_allocations",
+  "version": "1.0.0",
+  "description": "",
+  "main": "./debug/select.js",
+  "dependencies": {
+    "jquery": "^3.3.1",
+    "jquery-tablesort": "0.0.11"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Robert Bartlensky",
+  "license": "GPL-3.0"
+}

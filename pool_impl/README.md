@@ -5,15 +5,31 @@
 * `cd benchmarks && python3 generate_alloc_file.py && cd ..` -
 to include allocation benchmarks (**optional**)
 * `mkdir build && cd build && cmake .. && make` - to build the project
+* `make install` - to install the libraries
 * `make test` - runs the tests of the project (this assumes that the project
 is built)
-* `clang++ -Xclang -load -Xclang llvm/libLLVMCustomNewPass.so -o
-hello /path/to/hello.cpp libcustomnew.so` will compile `hello.cpp` with `clang`
+* `pip install -r ./requirements.txt` will install all the dependencies of
+all python scripts
+* `clang++ -Xclang -load -Xclang /path/to/libLLVMCustomNewPass.so -o
+hello /path/to/hello.cpp -lcustomnew.so` will compile `hello.cpp` with `clang`
 and run a special pass on the file in which all calls to `operator new/delete`
-will get replaced by `custom_new/delete`. Make sure you have `LD_LIBRARY_PATH`
-set to the build folder and that `ldconfig` is called after setting this
-variable.
+will get replaced by `custom_new/delete`.
 
+## LLVM CustomNewDeleteDebug pass
+
+This pass collects allocation information (type name, type size, allocation size,
+function name, etc.) during runtime by injecting
+`libcustomnewdebug` into the compiled program. If the executable is run, an
+`object_snapshots_<PID>.json` is generated.
+
+`clang++ -Xclang -load -Xclang /path/to/libLLVMCustomNewDebugPass.so -o
+hello /path/to/hello.cpp -lcustomnewdebug.so` will compile hello with
+the debug pass.
+
+The command `./generate_obj_alloc_html.py -f /path/to/object_snapshots_<PID>.json`
+will generate an HTML file which will render the results into table format.
+
+Make sure `cd debug && npm install` is run before generation.
 
 ## plot_elapsed_time.py
 
@@ -51,16 +67,9 @@ implementation. The custom new/delete library implements these operators by
 using the `linked_pool/GlobalLinkedPool` class to (de)allocate small objects and
 `malloc` to (de)allocate large objects.
 
-If `-d` is supplied, at the end of the execution, the custom library will output
-the memory used by the process to a file called `memory_snapshots_<PID>.output`,
-and the number of objects in use to `object_snapshots_<PID>.output`.
-The library takes snapshots every 10 ms.
-
 Usage (make sure `libcustomnew.so` is present in your build directory):
 * `inject_custom_new my_exec args1 args2` - to run your executable with the
 custom implementation that is also thread safe
-* `inject_custom_new my_exec args1 args2 -d` - to also generate debugging info
-(this will be slower than the first command and **not** thread safe)
 * `inject_custom_new my_exec args1 args2 -v2` - runs the second version
 of `custom_new_delete` which is faster, but has a few issues
 
@@ -88,6 +97,7 @@ Note: Make sure `generate_alloc_file.py` was run and the project was built.
 
 ## Licenses!
 Everything is GPLv3 except for the following files which have their own license:
+* `src/tools/light_lock.h` (check source)
 * `src/avltree/avltree.c` (check source)
 * `src/avltree/avltree.h` (check source)
 * `src/pool_allocators/MemoryPool.h` (MIT)

@@ -66,8 +66,8 @@ void AllocCollector::takeSnapshot() {
             for (const auto& obj : alignedObj.second.sizes) {
                 auto& entry = m_snapshots[m_snapshotCount][allocObj.first]
                     [std::to_string(alignedObj.first)]
-                    [std::to_string(alignedObj.second.baseSize)];
-                entry["size"] = obj.first;
+                    [std::to_string(obj.first)];
+                entry["base_size"] = alignedObj.second.baseSize;
                 entry["array"] = obj.second.array;
                 entry["current"] = obj.second.current;
                 entry["peak"] = obj.second.peak;

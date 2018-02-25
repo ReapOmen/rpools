@@ -24,24 +24,24 @@
  * ...
  * "Sudoku": { // the name of the type allocated
  *     "8": { // the alignment
- *         "48": { // the sizeof(Sudoku)
+ *         "48": { // the size of the allocation (`array * sizeof(Sudoku)`)
  *             "array": 1, // the number of contiguous elements allocated
  *             "current": 11, // how many Sudoku objects are allocated
  *             // the function which called new
  *             "function": "Sudoku::successors() const",
  *             "peak": 12, // the peak number of Sudoku's allocated
- *             "size": 48 // the size of the allocation (`array * sizeof(Sudoku)`)
+ *             "size": 48 // the sizeof(Sudoku)
  *         }
  *     }
  * },
  * "int": {
  *     "4": {
- *         "4": {
+ *         "16": {
  *             "array": 4,
  *             "current": 0,
  *             "function": "__gnu_cxx::new_allocator<int>::allocate(unsigned long, void const*)",
  *             "peak": 1,
- *             "size": 16
+ *             "size": 4
  *         }
  *     }
  * }
