@@ -1,3 +1,5 @@
+#!/usr/bin/python3
+
 from jinja2 import Environment, FileSystemLoader
 import json
 
@@ -16,6 +18,7 @@ def get_json(json_file):
 
 if __name__ == "__main__":
     import argparse
+    import os
     parser = argparse.ArgumentParser(description='Plot object allocation data')
     parser.add_argument('--file', '-f', help='Which file to plot')
     args = parser.parse_args()
@@ -40,5 +43,6 @@ if __name__ == "__main__":
         num_of_snapshots=num_of_snapshots,
         types=types,
         functions=functions))
-    with open(args.file + '.html', 'wb') as fh:
+    html_file = os.path.splitext(os.path.basename(args.file))[0]
+    with open(html_file + '.html', 'wb') as fh:
         fh.write(out.encode('utf-8'))

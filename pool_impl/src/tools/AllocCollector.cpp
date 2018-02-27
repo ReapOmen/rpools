@@ -28,7 +28,7 @@ void AllocCollector::addObject(size_t t_size, size_t t_align,
         m_threadStarted = true;
         m_snapshotThread = std::thread(&AllocCollector::run, this);
         m_objectsFile.open("object_snapshots_" + std::to_string(getpid()) +
-                           ".output");
+                           ".json");
     }
     std::unique_lock<std::mutex> lk(m_mapLock);
     m_cv.wait(lk, [&](){ return !m_waitingToPrint; });
