@@ -1,0 +1,36 @@
+body {
+    font-family: Helvetica, Arial, sans-serif;
+}
+
+#chart-dialog {
+    display: none; /* Hidden by default */
+    background: #EEEEEE;
+    border-style: solid;
+    border-color: #ABBABB;
+    z-index: 10;
+    margin: auto;
+    width: 80%;
+    height: 90%;
+    overflow: auto; /* Enable scroll if needed */
+}
+
+#chart-dialog > span:after {
+    display: inline-block;
+    font-size: 200%;
+    content: "\00d7"; /* This will render the 'X' */
+}
+
+table {
+    width: 100%;
+}
+
+#main-table {
+    color: #222222;
+    border-collapse: collapse;
+}
+
+#main-table th {
+    border: 1px solid #BABABA;
+    background: #DFDFDF;
+    font-weight: bold;
+}

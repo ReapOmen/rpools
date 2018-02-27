@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8">
+    <title>Memory allocations</title>
+    <link rel="stylesheet" type="text/css" href="./debug/table.css"/>
+    <script src="./debug/node_modules/jquery/dist/jquery.min.js"></script>
+    <script src="./debug/node_modules/jquery-tablesort/jquery.tablesort.min.js">
+    </script>
+    <script src="./debug/node_modules/chart.js/dist/Chart.min.js"></script>
+    <script src="./debug/js/select.js"></script>
+  </head>
+  <body>
+    <div id="chart-dialog">
+      <span></span>
+      <canvas id="chart-canvas"></canvas>
+    </div>
+    <table id="invisible">
+      <tr>
+        <th>
+          <div>Filter types:</div>
+        </th>
+        <th>
+          <div>Filter functions:</div>
+        </th>
+      </tr>
+      <tr>
+        <th>
+          <input type="text" id="type-filter"><br>
+        </th>
+        <th>
+          <input type="text" id="function-filter"><br>
+        </th>
+      </tr>
+    </table>
+    <table id="main-table">
+      <thead>
+        <tr>
+        {% for header in headers %}
+          {% if header[1] == ''  %}
+          <th>{{ header[0] }}</th>
+          {% else %}
+          <th class="{{ header[1] }}">{{ header[0] }}</th>
+          {% endif %}
+        {% endfor %}
+        </tr>
+      </thead>
+      <tbody>
+      {% for snapshot in snapshots %}
+        {% set outer_loop = loop %}
+        {% if snapshot %}
+          {% for name, alignments in snapshot.items() %}
+            {% for alignment, sizes in alignments.items() %}
+              {% for size, obj in sizes.items() %}
+                <tr>
+                  <th>{{ outer_loop.index0 }}</th>
+                  <th data-sort-value="{{ name.lower() }}">{{ name|e }}</th>
+                  <th>{{ alignment }}</th>
+                  <th>{{ size }}</th>
+                  <th>{{ obj.current }}</th>
+                  <th>{{ obj.peak }}</th>
+                  <th data-sort-value="{{ obj.function.lower() }}">
+                    {{ obj.function|e }}
+                  </th>
+                </tr>
+              {% endfor %}
+            {% endfor %}
+          {% endfor %}
+        {% endif %}
+      {% endfor %}
+      </tbody>
+    </table>
+  </body>
+</html>

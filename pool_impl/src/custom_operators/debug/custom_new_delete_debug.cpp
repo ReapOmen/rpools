@@ -1,51 +1,30 @@
 #include "custom_new_delete_debug.h"
+#include "tools/AllocCollector.h"
 
-// list of all new functions:
-//   http://en.cppreference.com/w/cpp/memory/new/operator_new
-// list of all delete functions:
-//   http://en.cppreference.com/w/cpp/memory/new/operator_delete
-
-// Some operators are not implemented because their default
-// implementation will not break custom_new/custom_delete
-
-// Note that the C++14/17/20 operators are not included!
-
-void* operator new(std::size_t size) {
-    return custom_new(size);
+namespace {
+    AllocCollector ac;
 }
 
-void* operator new(std::size_t size, const std::nothrow_t& nothrow_value) noexcept {
-    return custom_new_no_throw(size);
+void* custom_new_no_throw(size_t t_size, size_t t_alignment,
+                          const char* t_name, size_t t_baseSize,
+                          const char* t_funcName) {
+    void* toRet = malloc(t_size);
+    ac.addObject(t_size, t_alignment, t_name, t_baseSize, t_funcName, toRet);
+    return toRet;
 }
 
-void operator delete(void* ptr) noexcept {
-    if (ptr != nullptr) {
-        custom_delete(ptr);
-    }
-}
-
-void operator delete(void* ptr, const std::nothrow_t& nothrow_value) noexcept {
-    if (ptr != nullptr) {
-        custom_delete(ptr);
-    }
-}
-
-void* operator new[](std::size_t size) {
-    void* toRet = std::malloc(size);
+void* custom_new(size_t t_size, size_t t_alignment,
+                 const char* t_name, size_t t_baseSize,
+                 const char* t_funcName) {
+    void* toRet = custom_new_no_throw(t_size, t_alignment, t_name,
+                                      t_baseSize, t_funcName);
     if (toRet == nullptr) {
         throw std::bad_alloc();
     }
     return toRet;
 }
 
-void* operator new[](std::size_t size, const std::nothrow_t& nothrow_value) noexcept {
-    return std::malloc(size);
-}
-
-void operator delete[](void* ptr) noexcept {
-    free(ptr);
-}
-
-void operator delete[](void* ptr, const std::nothrow_t& nothrow_value) noexcept {
-    free(ptr);
+void custom_delete(void* t_ptr) throw() {
+    ac.removeObject(t_ptr);
+    free(t_ptr);
 }

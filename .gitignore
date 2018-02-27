@@ -1,9 +1,11 @@
 *.output
 *.json
 *.massif
+*.html
 build
+node_modules/
+html
 alloc_benchmark_*
-doc/html
 
 # emacs
 \#*

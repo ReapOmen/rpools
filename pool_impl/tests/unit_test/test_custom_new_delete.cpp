@@ -7,7 +7,6 @@ using std::vector;
 
 TEST_CASE("Allocations between 0 and 128 bytes have correct alignment",
           "[custom_new_delete]") {
-    void* first = custom_new_no_throw(0, sizeof(void*));
     for (size_t i = 0; i <= 128; ++i) {
         void* ptr = custom_new_no_throw(i, sizeof(void*));
         REQUIRE((size_t)ptr % sizeof(void*) == 0);
