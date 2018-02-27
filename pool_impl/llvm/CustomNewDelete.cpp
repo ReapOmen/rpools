@@ -145,7 +145,7 @@ struct CustomNewDelete : public BasicBlockPass {
                                      { ii.getOperand(0),
                                        builder.getInt64(alignment) }
                 );
-              AttributeSet attrs;
+              AttributeList attrs;
               attrs.addAttribute(ii.getContext(), 0, Attribute::NoAlias);
               customNewInvoke->setAttributes(attrs);
               ii.replaceAllUsesWith(customNewInvoke);

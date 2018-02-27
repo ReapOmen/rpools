@@ -273,7 +273,7 @@ struct CustomNewDeleteDebug : public BasicBlockPass {
                                        tm.name,
                                        builder.getInt64(tm.size),
                                        tm.funcName });
-              AttributeSet attrs;
+              AttributeList attrs;
               attrs.addAttribute(ii.getContext(), 0, Attribute::NoAlias);
               customNewInvoke->setAttributes(attrs);
               ii.replaceAllUsesWith(customNewInvoke);

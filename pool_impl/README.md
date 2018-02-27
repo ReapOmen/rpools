@@ -11,7 +11,7 @@ is built)
 * `pip install -r ./requirements.txt` will install all the dependencies of
 all python scripts
 * `clang++ -Xclang -load -Xclang /path/to/libLLVMCustomNewPass.so -o
-hello /path/to/hello.cpp -lcustomnew.so` will compile `hello.cpp` with `clang`
+hello /path/to/hello.cpp -lcustomnew` will compile `hello.cpp` with `clang`
 and run a special pass on the file in which all calls to `operator new/delete`
 will get replaced by `custom_new/delete`.
 
@@ -23,7 +23,7 @@ function name, etc.) during runtime by injecting
 `object_snapshots_<PID>.json` is generated.
 
 `clang++ -Xclang -load -Xclang /path/to/libLLVMCustomNewDebugPass.so -o
-hello /path/to/hello.cpp -lcustomnewdebug.so` will compile hello with
+hello /path/to/hello.cpp -lcustomnewdebug` will compile hello with
 the debug pass.
 
 The command `./generate_obj_alloc_html.py -f /path/to/object_snapshots_<PID>.json`
