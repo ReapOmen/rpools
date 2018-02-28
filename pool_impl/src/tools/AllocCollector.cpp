@@ -7,10 +7,7 @@ AllocCollector::AllocCollector()
       m_obj(),
       m_snapshots(),
       m_mapLock(),
-      m_cv(),
-      m_snapshotCount(0),
-      m_waitingToPrint(false),
-      m_threadStarted(false) {
+      m_cv() {
 }
 
 AllocCollector::~AllocCollector() {

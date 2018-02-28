@@ -15,7 +15,7 @@ GlobalPools::GlobalPools(size_t t_numOfPools)
     for (size_t i = __void; i <= t_numOfPools * __void; i += __void) {
         size_t alignment = (i & (alignof(max_align_t) - 1)) == 0 ?
             alignof(max_align_t) : __void;
-        m_pools.push_back(NSGlobalLinkedPool(i, alignment));
+        m_pools.emplace_back(i, alignment);
     }
 }
 

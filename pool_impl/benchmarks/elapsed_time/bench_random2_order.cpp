@@ -23,7 +23,7 @@
 #include <random>
 #include <chrono>
 #include <cstdlib>
-#include <time.h>
+#include <ctime>
 
 #include "Utility.h"
 #include "unit_test/TestObject.h"
@@ -163,7 +163,7 @@ void pushAndPop(vector<pair<size_t, bool>>& vec,
                 size_t deallocNum,
                 vector<size_t>& allocated) {
     for (size_t i = 0; i < deallocNum; ++i) {
-        vec.push_back(make_pair(allocated.back(), true));
+        vec.emplace_back(allocated.back(), true);
         allocated.pop_back();
     }
 }
@@ -227,7 +227,7 @@ int main(int argc, char *argv[]) {
         shuffle(allocated);
         rangeStart = rangeEnd;
         // record how many objects we allocated
-        order.push_back(make_pair(allocation, false));
+        order.emplace_back(allocation, false);
         // record how many random deallocations have been made and
         // at what indices
         pushAndPop(order, rand() % allocated.size() + 1, allocated);

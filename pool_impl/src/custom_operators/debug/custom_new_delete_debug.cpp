@@ -24,7 +24,7 @@ void* custom_new(size_t t_size, size_t t_alignment,
     return toRet;
 }
 
-void custom_delete(void* t_ptr) throw() {
+void custom_delete(void* t_ptr) noexcept {
     ac.removeObject(t_ptr);
     free(t_ptr);
 }

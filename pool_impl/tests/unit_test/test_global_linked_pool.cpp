@@ -125,9 +125,9 @@ void test_interleaving() {
     for (size_t i = 0; i < size; ++i) {
         objs[i] = new (lp.allocate()) T();
     }
-    void* firstDeallocated = reinterpret_cast<void*>(objs[1]);
+    auto firstDeallocated = reinterpret_cast<void*>(objs[1]);
     lp.deallocate(objs[1]);
-    void* secondDeallocated = reinterpret_cast<void*>(objs[4]);
+    auto secondDeallocated = reinterpret_cast<void*>(objs[4]);
     lp.deallocate(objs[4]);
     // now we have that head -> 4 -> 1 -> 6
     // so if we allocate something, it will have the address of slot 4

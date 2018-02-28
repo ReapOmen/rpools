@@ -86,8 +86,8 @@ private:
     std::mutex m_mapLock;
     std::condition_variable m_cv;
     std::thread m_snapshotThread;
-    size_t m_snapshotCount;
-    bool m_waitingToPrint, m_threadStarted;
+    size_t m_snapshotCount = 0;
+    bool m_waitingToPrint = false, m_threadStarted = false;
 
     void run();
 };

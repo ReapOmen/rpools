@@ -18,7 +18,7 @@ namespace {
     GlobalPools __pools(__threshold >> __logOfVoid);
 
     std::unique_ptr<avl_tree, FreeDeleter<avl_tree>>  __mallocedPages(
-        avl_init((avl_tree*)std::malloc(sizeof(avl_tree)), NULL)
+        avl_init((avl_tree*)std::malloc(sizeof(avl_tree)), nullptr)
     );
 
     LMLock __lock;
@@ -30,9 +30,9 @@ void* custom_new_no_throw(size_t t_size,
     // alignments that are not 2, 4, 8, 16
     if ((alignof(max_align_t) & (t_alignment - 1)) != 0 || t_size > __threshold) {
         void* addr = aligned_alloc(t_alignment, t_size);
-        size_t maskedAddr = reinterpret_cast<size_t>(addr) &
+        auto maskedAddr = reinterpret_cast<size_t>(addr) &
             NSGlobalLinkedPool::POOL_MASK;
-        void* page = reinterpret_cast<void*>(maskedAddr);
+        auto page = reinterpret_cast<void*>(maskedAddr);
         __lock.lock();
         auto res = _get_entry(page_get(__mallocedPages.get(), page),
                               PageNode, avl);
@@ -71,11 +71,11 @@ void* custom_new(size_t t_size,
     return toRet;
 }
 
-void custom_delete(void* t_ptr) throw() {
+void custom_delete(void* t_ptr) noexcept {
     // find out if the pointer was allocated with malloc
     // or within a pool
-    size_t addr = reinterpret_cast<size_t>(t_ptr);
-    void* page = reinterpret_cast<void*>(addr & NSGlobalLinkedPool::POOL_MASK);
+    auto addr = reinterpret_cast<size_t>(t_ptr);
+    auto page = reinterpret_cast<void*>(addr & NSGlobalLinkedPool::POOL_MASK);
     __lock.lock();
     avl_node* kv = page_get(__mallocedPages.get(), page);
     auto res = _get_entry(kv, PageNode, avl);

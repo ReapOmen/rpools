@@ -93,10 +93,10 @@ private:
 #else
     std::mutex m_poolLock;
 #endif
-    size_t m_headerPadding;
+    size_t m_headerPadding = 0;
     size_t m_slotSize;
-    size_t m_poolSize;
-    Pool m_freePool;
+    size_t m_poolSize = 0;
+    Pool m_freePool = nullptr;
 
     /** Creates a `PoolHeader` at **t_ptr**
      *  @param t_ptr the address where the `PoolHeader` is created
@@ -124,10 +124,7 @@ LinkedPool3<T>::LinkedPool3()
           LIGHT_LOCK_INIT
 #endif
       ),
-      m_headerPadding(0),
-      m_slotSize(sizeof(T) < sizeof(Node) ? sizeof(Node) : sizeof(T)),
-      m_poolSize(0),
-      m_freePool(nullptr) {
+      m_slotSize(sizeof(T) < sizeof(Node) ? sizeof(Node) : sizeof(T)) {
     // make sure the first slot starts at a proper alignment
     size_t diff = sizeof(PoolHeader) % alignof(T);
     if (diff != 0) {
@@ -172,7 +169,7 @@ void* LinkedPool3<T>::allocate() {
 template<typename T>
 void LinkedPool3<T>::deallocate(void* t_ptr) {
     // get the pool of t_ptr
-    PoolHeader* pool = reinterpret_cast<PoolHeader*>(
+    auto pool = reinterpret_cast<PoolHeader*>(
         reinterpret_cast<size_t>(t_ptr) & POOL_MASK
     );
 #ifdef __x86_64
@@ -186,7 +183,7 @@ void LinkedPool3<T>::deallocate(void* t_ptr) {
         free(pool);
         m_freePool = pool_first(&m_freePools);
     } else {
-        Node* newNodeG = new (t_ptr) Node();
+        auto newNodeG = new (t_ptr) Node();
         // update nodes to point to the newly create Node
         Node& head = pool->head;
         newNodeG->next = head.next;
@@ -205,12 +202,12 @@ void LinkedPool3<T>::deallocate(void* t_ptr) {
 
 template<typename T>
 void LinkedPool3<T>::constructPoolHeader(Pool t_ptr) {
-    PoolHeader* header = new (t_ptr) PoolHeader();
-    char* first = reinterpret_cast<char*>(header + 1);
+    auto header = new (t_ptr) PoolHeader();
+    auto first = reinterpret_cast<char*>(header + 1);
     first += m_headerPadding;
     header->head.next = reinterpret_cast<Node*>(first);
     for (size_t i = 0; i < m_poolSize - 1; ++i) {
-        Node* node = new (first) Node();
+        auto node = new (first) Node();
         first += m_slotSize;
         node->next = reinterpret_cast<Node*>(first);
     }
@@ -219,7 +216,7 @@ void LinkedPool3<T>::constructPoolHeader(Pool t_ptr) {
 
 template<typename T>
 void* LinkedPool3<T>::nextFree(Pool pool) {
-    PoolHeader* header = reinterpret_cast<PoolHeader*>(pool);
+    auto header = reinterpret_cast<PoolHeader*>(pool);
     Node& head = header->head;
     void* toReturn = head.next;
     if (head.next) {

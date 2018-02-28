@@ -32,10 +32,10 @@ public:
 private:
     avl_tree m_freePools;
     const size_t m_sizeOfObjects;
-    size_t m_headerPadding;
+    size_t m_headerPadding = 0;
     size_t m_slotSize;
-    size_t m_poolSize;
-    Pool m_freePool;
+    size_t m_poolSize = 0;
+    Pool m_freePool = nullptr;
 
     void constructPoolHeader(char* t_ptr);
     void* nextFree(Pool t_ptr);

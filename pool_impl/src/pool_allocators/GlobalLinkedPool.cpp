@@ -19,11 +19,8 @@ GlobalLinkedPool::GlobalLinkedPool(size_t t_sizeOfObjects,
       m_poolLock(),
       m_sizeOfObjects(t_sizeOfObjects < sizeof(Node) ?
                       sizeof(Node) : t_sizeOfObjects),
-      m_headerPadding(0),
-      m_slotSize(m_sizeOfObjects),
-      m_poolSize(0),
-      m_freePool(nullptr) {
-    avl_init(&m_freePools, NULL);
+      m_slotSize(m_sizeOfObjects) {
+    avl_init(&m_freePools, nullptr);
     // make sure the first slot starts at a proper alignment
     size_t diff = sizeof(PoolHeaderG) & (t_alignment - 1);
     if (diff != 0) {
@@ -59,7 +56,7 @@ void* GlobalLinkedPool::allocate() {
 
 void GlobalLinkedPool::deallocate(void* t_ptr) {
     // get the pool of ptr
-    PoolHeaderG* pool = reinterpret_cast<PoolHeaderG*>(
+    auto pool = reinterpret_cast<PoolHeaderG*>(
         reinterpret_cast<size_t>(t_ptr) & POOL_MASK
     );
     m_poolLock.lock();
@@ -68,7 +65,7 @@ void GlobalLinkedPool::deallocate(void* t_ptr) {
         free(pool);
         m_freePool = pool_first(&m_freePools);
     } else {
-        Node* newNode = new (t_ptr) Node();
+        auto newNode = new (t_ptr) Node();
         // update nodes to point to the newly create Node
         Node& head = pool->head;
         newNode->next = head.next;
@@ -83,15 +80,15 @@ void GlobalLinkedPool::deallocate(void* t_ptr) {
 
 void GlobalLinkedPool::constructPoolHeader(char* t_ptr) {
     // first slot after the header that is also aligned
-    Node* headNext = reinterpret_cast<Node*>(sizeof(PoolHeaderG) +
-                                             t_ptr + m_headerPadding);
+    auto headNext = reinterpret_cast<Node*>(sizeof(PoolHeaderG) +
+                                            t_ptr + m_headerPadding);
     // create the header at the start of the pool
     new (t_ptr) PoolHeaderG(m_sizeOfObjects, headNext);
     // skip the header
     t_ptr = reinterpret_cast<char*>(headNext);
     // for each slot in the pool, create a node that is linked to the next slot
     for (size_t i = 0; i < m_poolSize - 1; ++i) {
-        Node* newNode = new (t_ptr) Node();
+        auto newNode = new (t_ptr) Node();
         t_ptr += m_slotSize;
         newNode->next = reinterpret_cast<Node*>(t_ptr);
     }
@@ -100,7 +97,7 @@ void GlobalLinkedPool::constructPoolHeader(char* t_ptr) {
 }
 
 void* GlobalLinkedPool::nextFree(Pool pool) {
-    PoolHeaderG* header = reinterpret_cast<PoolHeaderG*>(pool);
+    auto header = reinterpret_cast<PoolHeaderG*>(pool);
     Node& head = header->head;
     void* toReturn = head.next;
     if (toReturn) {
