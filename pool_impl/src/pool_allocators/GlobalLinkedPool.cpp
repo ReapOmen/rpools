@@ -3,7 +3,7 @@
 #include <cstdlib>
 #include <new>
 
-#include "GlobalLinkedPool.h"
+#include "GlobalLinkedPool.hpp"
 
 using namespace efficient_pools;
 

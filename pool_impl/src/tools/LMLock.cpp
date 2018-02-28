@@ -1,4 +1,4 @@
-#include "LMLock.h"
+#include "LMLock.hpp"
 
 LMLock::LMLock()
     : m_lock(

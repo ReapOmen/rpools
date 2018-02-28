@@ -1,5 +1,5 @@
-#include "custom_new_delete_debug.h"
-#include "tools/AllocCollector.h"
+#include "custom_new_delete_debug.hpp"
+#include "tools/AllocCollector.hpp"
 
 namespace {
     AllocCollector ac;

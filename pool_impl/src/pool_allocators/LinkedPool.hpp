@@ -6,7 +6,7 @@
 #include <cstdlib>
 #include <new>
 
-#include "Node.h"
+#include "Node.hpp"
 
 extern "C" {
 #include "avltree/avl_utils.h"
@@ -167,14 +167,14 @@ void LinkedPool<T>::constructPoolHeader(Pool t_ptr) {
 }
 
 template<typename T>
-void* LinkedPool<T>::nextFree(Pool pool) {
-    auto header = reinterpret_cast<PoolHeader*>(pool);
+void* LinkedPool<T>::nextFree(Pool t_ptr) {
+    auto header = reinterpret_cast<PoolHeader*>(t_ptr);
     Node& head = header->head;
     void* toReturn = head.next;
     if (head.next) {
         head.next = head.next->next;
         if (++(header->sizeOfPool) == m_poolSize) {
-            pool_remove(&m_freePools, pool);
+            pool_remove(&m_freePools, t_ptr);
         }
     }
 #ifdef __x86_64

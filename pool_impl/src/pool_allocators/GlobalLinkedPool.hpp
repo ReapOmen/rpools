@@ -4,8 +4,8 @@
 extern "C" {
 #include "avltree/avl_utils.h"
 }
-#include "PoolHeaderG.h"
-#include "tools/LMLock.h"
+#include "PoolHeaderG.hpp"
+#include "tools/LMLock.hpp"
 
 namespace efficient_pools {
 

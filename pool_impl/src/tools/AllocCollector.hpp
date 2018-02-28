@@ -8,7 +8,7 @@
 #include <thread>
 
 #include "nlohmann/json.hpp" // basic_json
-#include "AllocatedObject.h"
+#include "AllocatedObject.hpp"
 
 /**
  * Collects information about all the allocations that are made with

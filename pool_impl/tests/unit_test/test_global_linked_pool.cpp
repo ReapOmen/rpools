@@ -2,8 +2,8 @@
 
 #include "TestObject.h"
 #include "TestObject2.h"
-#include "pool_allocators/GlobalLinkedPool.h"
-#include "pool_allocators/NSGlobalLinkedPool.h"
+#include "pool_allocators/GlobalLinkedPool.hpp"
+#include "pool_allocators/NSGlobalLinkedPool.hpp"
 using efficient_pools::GlobalLinkedPool;
 using efficient_pools::NSGlobalLinkedPool;
 

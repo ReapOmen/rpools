@@ -1,5 +1,5 @@
-#include "AllocCollector.h"
-#include "proc_utils.h" // getpid
+#include "AllocCollector.hpp"
+#include "proc_utils.hpp" // getpid
 
 AllocCollector::AllocCollector()
     : m_objectsFile(),

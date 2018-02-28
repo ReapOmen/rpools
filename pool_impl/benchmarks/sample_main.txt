@@ -1,7 +1,7 @@
 #include <iostream>
 
-#include "tools/proc_utils.h"
-#include "pool_allocators/LinkedPool3.h"
+#include "tools/proc_utils.hpp"
+#include "pool_allocators/LinkedPool3.hpp"
 using efficient_pools3::LinkedPool3;
 using std::cout;
 using std::endl;

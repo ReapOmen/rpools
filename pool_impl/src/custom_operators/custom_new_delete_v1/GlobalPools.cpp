@@ -1,4 +1,4 @@
-#include "GlobalPools.h"
+#include "GlobalPools.hpp"
 
 #include <cstddef>
 #include <cmath>

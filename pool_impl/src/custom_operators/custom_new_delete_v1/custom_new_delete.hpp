@@ -3,9 +3,9 @@
 
 #include <cmath>
 
-#include "tools/FreeDeleter.h"
-#include "GlobalPools.h"
-#include "tools/LMLock.h"
+#include "tools/FreeDeleter.hpp"
+#include "GlobalPools.hpp"
+#include "tools/LMLock.hpp"
 
 namespace {
     using efficient_pools::NSGlobalLinkedPool;

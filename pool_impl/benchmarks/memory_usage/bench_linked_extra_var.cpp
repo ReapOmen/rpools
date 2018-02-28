@@ -1,7 +1,7 @@
 #include <string>
 
 #include "unit_test/TestObject.h"
-#include "pool_allocators/LinkedPool3.h"
+#include "pool_allocators/LinkedPool3.hpp"
 using efficient_pools3::LinkedPool3;
 
 #include <vector>

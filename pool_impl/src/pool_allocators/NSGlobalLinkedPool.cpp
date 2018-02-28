@@ -3,7 +3,7 @@
 #include <cstdlib>
 #include <new>
 
-#include "NSGlobalLinkedPool.h"
+#include "NSGlobalLinkedPool.hpp"
 
 using namespace efficient_pools;
 

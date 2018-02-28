@@ -2,7 +2,7 @@
 #define __POOL_HEADER_G__
 
 #include <cstddef>
-#include "Node.h"
+#include "Node.hpp"
 
 /**
  *  Every pool is allocated on a page boundary.

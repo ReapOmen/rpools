@@ -5,7 +5,7 @@
 #include <cmath>
 #include <cstdlib>
 #include <new>
-#include "Node.h"
+#include "Node.hpp"
 
 extern "C" {
 #include "avltree/avl_utils.h"
@@ -215,8 +215,8 @@ void LinkedPool3<T>::constructPoolHeader(Pool t_ptr) {
 }
 
 template<typename T>
-void* LinkedPool3<T>::nextFree(Pool pool) {
-    auto header = reinterpret_cast<PoolHeader*>(pool);
+void* LinkedPool3<T>::nextFree(Pool t_ptr) {
+    auto header = reinterpret_cast<PoolHeader*>(t_ptr);
     Node& head = header->head;
     void* toReturn = head.next;
     if (head.next) {
@@ -224,7 +224,7 @@ void* LinkedPool3<T>::nextFree(Pool pool) {
         // if the pool becomes full, don't consider it in the list
         // of pools that have some free slots
         if (++(header->occupiedSlots) == m_poolSize) {
-            pool_remove(&m_freePools, pool);
+            pool_remove(&m_freePools, t_ptr);
             m_freePool = pool_first(&m_freePools);
         }
     }

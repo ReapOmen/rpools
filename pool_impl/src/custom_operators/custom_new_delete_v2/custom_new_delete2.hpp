@@ -4,9 +4,9 @@
 #include <cmath>
 #include <vector>
 
-#include "tools/mallocator.h"
-#include "tools/FreeDeleter.h"
-#include "pool_allocators/GlobalLinkedPool.h"
+#include "tools/mallocator.hpp"
+#include "tools/FreeDeleter.hpp"
+#include "pool_allocators/GlobalLinkedPool.hpp"
 
 namespace {
     using efficient_pools::GlobalLinkedPool;

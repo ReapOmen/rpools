@@ -46,7 +46,7 @@ struct JSONWriter {
      *  @param t_numOfAllocs the value of the key `number_of_allocations`
      */
     JSONWriter(const std::string& t_fileName, size_t t_numOfAllocs)
-        : f(t_fileName), j() {
+        : f(t_fileName) {
         j["number_of_allocations"] = t_numOfAllocs;
     }
 
