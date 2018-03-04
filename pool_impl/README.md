@@ -70,8 +70,6 @@ using the `linked_pool/GlobalLinkedPool` class to (de)allocate small objects and
 Usage (make sure `libcustomnew.so` is present in your build directory):
 * `inject_custom_new my_exec args1 args2` - to run your executable with the
 custom implementation that is also thread safe
-* `inject_custom_new my_exec args1 args2 -v2` - runs the second version
-of `custom_new_delete` which is faster, but has a few issues
 
 Note: Make sure you run the script from **this** folder!
 
@@ -97,7 +95,7 @@ Note: Make sure `generate_alloc_file.py` was run and the project was built.
 
 ## Licenses!
 Everything is GPLv3 except for the following files which have their own license:
-* `src/tools/light_lock.h` (check source)
+* `include/tools/light_lock.h` (check source)
 * `src/avltree/avltree.c` (check source)
-* `src/avltree/avltree.h` (check source)
+* `include/avltree/avltree.h` (check source)
 * `src/pool_allocators/MemoryPool.h` (MIT)

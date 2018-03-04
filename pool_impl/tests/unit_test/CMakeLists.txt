@@ -22,11 +22,7 @@ add_test(NAME TestGlobalLinkedPool COMMAND test_global_linked_pool)
 add_executable(test_custom_new_delete
   ${SRC}/tools/LMLock.cpp
   ${SRC}/custom_operators/custom_new_delete_v1/GlobalPools.cpp
+  ${SRC}/custom_operators/custom_new_delete_v1/custom_new_delete.cpp
   test_custom_new_delete.cpp)
 target_link_libraries(test_custom_new_delete PRIVATE nsgllinkedpool testrunner)
 add_test(NAME TestCustomNewDelete COMMAND test_custom_new_delete)
-
-# test custom_new_delete2.cpp
-add_executable(test_custom_new_delete2 test_custom_new_delete2.cpp)
-target_link_libraries(test_custom_new_delete2 PRIVATE gllinkedpool testrunner)
-add_test(NAME TestCustomNewDelete2 COMMAND test_custom_new_delete2)

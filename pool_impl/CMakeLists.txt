@@ -3,15 +3,16 @@ cmake_minimum_required(VERSION 2.8.9)
 project(efficient_pools)
 
 option(BUILD_TESTS "Whether or not to build tests." ON)
-option(BUILD_BENCHMARKS "Build benchmarks folder." OFF)
+option(BUILD_BENCHMARKS "Build benchmarks folder." ON)
 
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_FLAGS "-Wall -Werror -pthread -std=c++11 ${CMAKE_CXX_FLAGS}")
 
 set(SRC ${PROJECT_SOURCE_DIR}/src)
+set(INC ${PROJECT_SOURCE_DIR}/include)
 
 # src libs
-include_directories(${SRC})
+include_directories(${INC})
 add_subdirectory(${SRC})
 
 # Prepare "gllinkedpool" library for linking
@@ -36,16 +37,11 @@ target_link_libraries(customnew nsgllinkedpool)
 
 # Prepare "libcustomnewdebug.so" for inject script
 add_library(customnewdebug SHARED
-  ${SRC}/tools/AllocCollector.cpp
+  ${SRC}/custom_operators/debug/AllocCollector.cpp
   ${SRC}/custom_operators/debug/custom_new_delete_debug.cpp)
 target_include_directories(customnewdebug PRIVATE ./libs/json/single_include)
 
 install(TARGETS nsgllinkedpool customnew customnewdebug DESTINATION /usr/local/lib)
-
-# Prepare "libcustomnew2.so" for inject script
-add_library(customnew2 SHARED
-  ${SRC}/custom_operators/custom_new_delete_v2/custom_new_delete.cpp)
-target_link_libraries(customnew2 PRIVATE gllinkedpool)
 
 # LLVM for custom_new_delete pass
 find_package(LLVM 5.0 CONFIG)

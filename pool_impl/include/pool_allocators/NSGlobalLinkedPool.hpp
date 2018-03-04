@@ -1,7 +1,7 @@
 #ifndef __NS_GLOBAL_LINKED_POOL_H__
 #define __NS_GLOBAL_LINKED_POOL_H__
 
-#include "PoolHeaderG.hpp"
+#include "pool_allocators/PoolHeaderG.hpp"
 
 extern "C" {
 #include "avltree/avl_utils.h"
