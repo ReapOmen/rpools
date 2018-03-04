@@ -22,8 +22,8 @@
 #include <boost/pool/object_pool.hpp>
 #endif
 #include "pool_allocators/MemoryPool.h"
-#include "pool_allocators/LinkedPool.h"
-#include "pool_allocators/LinkedPool3.h"
+#include "pool_allocators/LinkedPool.hpp"
+#include "pool_allocators/LinkedPool3.hpp"
 
 using efficient_pools::LinkedPool;
 using efficient_pools3::LinkedPool3;

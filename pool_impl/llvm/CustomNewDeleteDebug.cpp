@@ -162,8 +162,8 @@ struct CustomNewDeleteDebug : public BasicBlockPass {
     // check if the instruction is a bitcast
     // because it holds the type, therefore the alignment
     if (inst && isa<BitCastInst>(*inst)) {
-      BitCastInst& bci = cast<BitCastInst>(*inst);
-      PointerType& pt = cast<PointerType>(*bci.getDestTy());
+      auto& bci = cast<BitCastInst>(*inst);
+      auto& pt = cast<PointerType>(*bci.getDestTy());
       Type* type = pt.getPointerElementType();
       tm.alignment = dataLayout.getPrefTypeAlignment(type);
       tm.size = dataLayout.getTypeAllocSize(type);
@@ -232,7 +232,7 @@ struct CustomNewDeleteDebug : public BasicBlockPass {
     std::vector<Instruction*> insts;
     for (auto& inst : bb) {
       if (isa<CallInst>(inst)) {
-        CallInst& ci = cast<CallInst>(inst);
+        auto& ci = cast<CallInst>(inst);
         auto func = ci.getCalledFunction();
         if (func && func->getName().data()) {
           std::string name = getDemangledName(func->getName().str());
@@ -253,7 +253,7 @@ struct CustomNewDeleteDebug : public BasicBlockPass {
           }
         }
       } else if (isa<InvokeInst>(inst)) {
-          InvokeInst& ii = cast<InvokeInst>(inst);
+          auto& ii = cast<InvokeInst>(inst);
           auto func = ii.getCalledFunction();
           if (func) {
             std::string name = getDemangledName(func->getName().str());

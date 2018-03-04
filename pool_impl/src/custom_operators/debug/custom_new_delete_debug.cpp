@@ -1,5 +1,5 @@
-#include "custom_new_delete_debug.h"
-#include "tools/AllocCollector.h"
+#include "custom_new_delete_debug.hpp"
+#include "tools/AllocCollector.hpp"
 
 namespace {
     AllocCollector ac;
@@ -24,7 +24,7 @@ void* custom_new(size_t t_size, size_t t_alignment,
     return toRet;
 }
 
-void custom_delete(void* t_ptr) throw() {
+void custom_delete(void* t_ptr) noexcept {
     ac.removeObject(t_ptr);
     free(t_ptr);
 }

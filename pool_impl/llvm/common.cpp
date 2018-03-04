@@ -22,7 +22,7 @@ bool custom_pass::isDelete(const string& t_name) {
 std::string custom_pass::getDemangledName(const string& t_name) {
   int status = -1;
   char* demangledName = abi::__cxa_demangle(
-    t_name.c_str(), NULL, NULL, &status
+    t_name.c_str(), nullptr, nullptr, &status
   );
   return demangledName ? demangledName : t_name;
 }

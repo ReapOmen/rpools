@@ -6,7 +6,7 @@
 #include <cstdlib>
 #include <new>
 
-#include "Node.h"
+#include "Node.hpp"
 
 extern "C" {
 #include "avltree/avl_utils.h"
@@ -103,7 +103,7 @@ LinkedPool<T>::LinkedPool()
 #endif
       ),
       m_poolSize((PAGE_SIZE - sizeof(PoolHeader)) / sizeof(T)) {
-    avl_init(&m_freePools, NULL);
+    avl_init(&m_freePools, nullptr);
 }
 
 template<typename T>
@@ -128,7 +128,7 @@ void* LinkedPool<T>::allocate() {
 template<typename T>
 void LinkedPool<T>::deallocate(void* t_ptr) {
     // get the pool of ptr
-    PoolHeader* pool = reinterpret_cast<PoolHeader*>(
+    auto pool = reinterpret_cast<PoolHeader*>(
         reinterpret_cast<size_t>(t_ptr) & POOL_MASK
     );
 #ifdef __x86_64
@@ -140,7 +140,7 @@ void LinkedPool<T>::deallocate(void* t_ptr) {
         pool_remove(&m_freePools, pool);
         free(pool);
     } else {
-        Node* newNode = new (t_ptr) Node();
+        auto newNode = new (t_ptr) Node();
         // update nodes to point to the newly create Node
         Node& head = pool->head;
         newNode->next = head.next;
@@ -157,24 +157,24 @@ void LinkedPool<T>::deallocate(void* t_ptr) {
 template<typename T>
 void LinkedPool<T>::constructPoolHeader(Pool t_ptr) {
     PoolHeader* header = new (t_ptr) PoolHeader();
-    T* first = reinterpret_cast<T*>(header + 1);
+    auto first = reinterpret_cast<T*>(header + 1);
     header->head.next = reinterpret_cast<Node*>(first);
     for (size_t i = 0; i < m_poolSize - 1; ++i) {
-        Node* node = new (first) Node();
+        auto node = new (first) Node();
         node->next = reinterpret_cast<Node*>(++first);
     }
     new (first) Node();
 }
 
 template<typename T>
-void* LinkedPool<T>::nextFree(Pool pool) {
-    PoolHeader* header = reinterpret_cast<PoolHeader*>(pool);
+void* LinkedPool<T>::nextFree(Pool t_ptr) {
+    auto header = reinterpret_cast<PoolHeader*>(t_ptr);
     Node& head = header->head;
     void* toReturn = head.next;
     if (head.next) {
         head.next = head.next->next;
         if (++(header->sizeOfPool) == m_poolSize) {
-            pool_remove(&m_freePools, pool);
+            pool_remove(&m_freePools, t_ptr);
         }
     }
 #ifdef __x86_64

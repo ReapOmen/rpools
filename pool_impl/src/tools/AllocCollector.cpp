@@ -1,5 +1,5 @@
-#include "AllocCollector.h"
-#include "proc_utils.h" // getpid
+#include "AllocCollector.hpp"
+#include "proc_utils.hpp" // getpid
 
 AllocCollector::AllocCollector()
     : m_objectsFile(),
@@ -7,10 +7,7 @@ AllocCollector::AllocCollector()
       m_obj(),
       m_snapshots(),
       m_mapLock(),
-      m_cv(),
-      m_snapshotCount(0),
-      m_waitingToPrint(false),
-      m_threadStarted(false) {
+      m_cv() {
 }
 
 AllocCollector::~AllocCollector() {

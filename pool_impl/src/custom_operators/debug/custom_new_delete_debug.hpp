@@ -24,6 +24,6 @@ void* custom_new(size_t t_size, size_t t_alignment,
  * Frees the given pointer.
  * @param t_ptr the pointer that is freed
  */
-void custom_delete(void* t_ptr) throw();
+void custom_delete(void* t_ptr) noexcept;
 
 #endif // __CUSTOM_NEW_DELETE_DEBUG_H__

@@ -3,7 +3,7 @@
 #include <vector>
 using std::vector;
 
-#include "custom_operators/custom_new_delete_v2/custom_new_delete2.h"
+#include "custom_operators/custom_new_delete_v2/custom_new_delete2.hpp"
 
 TEST_CASE("Allocations between 0 and 128 bytes use GlobalLinkedPool",
           "[custom_new_delete]") {

@@ -5,7 +5,7 @@
 #include <string>
 #include <map>
 
-#include "mallocator.h"
+#include "mallocator.hpp"
 
 struct Object {
     size_t array; // the number of contiguous objects allocated

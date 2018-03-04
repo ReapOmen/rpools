@@ -4,9 +4,9 @@
 #include <cmath>
 #include <vector>
 
-#include "tools/mallocator.h"
-#include "tools/FreeDeleter.h"
-#include "pool_allocators/GlobalLinkedPool.h"
+#include "tools/mallocator.hpp"
+#include "tools/FreeDeleter.hpp"
+#include "pool_allocators/GlobalLinkedPool.hpp"
 
 namespace {
     using efficient_pools::GlobalLinkedPool;
@@ -27,7 +27,7 @@ namespace {
     }
 
     inline void* mark(void* t_addr, char t_markType) {
-        char* cAddr = reinterpret_cast<char*>(t_addr);
+        auto cAddr = reinterpret_cast<char*>(t_addr);
         *cAddr = t_markType;
         return reinterpret_cast<void*>(cAddr + 1);
     }
@@ -66,7 +66,7 @@ inline void* custom_new(size_t t_size) {
     return toRet;
 }
 
-inline void custom_delete(void* t_ptr) throw() {
+inline void custom_delete(void* t_ptr) noexcept {
     // find out if the pointer was allocated with malloc
     // or within a pool
     char* addr = reinterpret_cast<char*>(t_ptr);
