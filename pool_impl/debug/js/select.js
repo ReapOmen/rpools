@@ -1,4 +1,5 @@
 $(document).ready(function() {
+    // the X button 'closes' the chart dialog
     $('#chart-dialog > span').on('click', function() {
         $(this).parent().hide(0);
     });
@@ -8,6 +9,7 @@ $(document).ready(function() {
     });
     $('#main-table').tablesort();
     $('#main-table > tbody > tr').each(function() {
+        // clicking on a table row will generate a graph
         $(this).on('click', function () {
             var name = $(this).find('th:eq(1)').text();
             var allocSize = $(this).find('th:eq(3)').text();
@@ -24,6 +26,13 @@ $(document).ready(function() {
     });
 });
 
+/**
+ *  Hides all rows whose columns do not match the given strings.
+ *  Example: strs = ['a', 'b']; cols = [1, 3];
+ *  Hide all rows which do not cotain 'a' in column 1 AND 'b' in column 3.
+ *  @param strs the strings which are used in the filtering process
+ *  @param cols the columns which are filtered
+ */
 function filterByColumn(strs, cols) {
     $('#main-table > tbody  > tr').each(function() {
         var show = true;
@@ -44,9 +53,15 @@ function filterByColumn(strs, cols) {
 
 var chart = undefined;
 
+/**
+ *  Creates a chart for the given type.
+ *  @param name the name of the type
+ *  @param allocSize the size of the allocation
+ */
 function showGraph(name, allocSize) {
     var datapoints = [];
     var labels = [];
+    // find all rows which refer to the given type
     $('#main-table > tbody  > tr').each(function() {
         if ($(this).find('th:eq(1)').text() === name &&
             $(this).find('th:eq(3)').text() === allocSize) {
@@ -55,6 +70,7 @@ function showGraph(name, allocSize) {
             datapoints.push(parseInt($(this).find('th:eq(4)').text(), 10));
         }
     });
+    // clear the last chart and remove it in order to create a new one
     if (chart !== undefined) {
         chart.clear();
         chart.destroy();
