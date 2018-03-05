@@ -34,8 +34,8 @@
 #include "pool_allocators/LinkedPool.hpp"
 #include "pool_allocators/LinkedPool3.hpp"
 
-using efficient_pools::LinkedPool;
-using efficient_pools3::LinkedPool3;
+using rpools::LinkedPool;
+using rpools::LinkedPool3;
 using std::pair;
 using std::make_pair;
 using std::vector;

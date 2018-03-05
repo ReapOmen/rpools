@@ -7,7 +7,7 @@ extern "C" {
 #include "avltree/avl_utils.h"
 }
 
-namespace efficient_pools {
+namespace rpools {
 
 using Pool = void*;
 
@@ -41,4 +41,5 @@ private:
     void* nextFree(Pool t_ptr);
 };
 }
+
 #endif // __NS_GLOBAL_LINKED_POOL_H__

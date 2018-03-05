@@ -7,7 +7,7 @@ extern "C" {
 #include "pool_allocators/PoolHeaderG.hpp"
 #include "tools/LMLock.hpp"
 
-namespace efficient_pools {
+namespace rpools {
 
 using Pool = void*;
 

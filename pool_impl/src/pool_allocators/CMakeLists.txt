@@ -4,4 +4,4 @@ add_library(linkedpools SHARED
   ${SRC}/tools/LMLock.cpp
   ${SRC}/pool_allocators/GlobalLinkedPool.cpp
   ${SRC}/pool_allocators/NSGlobalLinkedPool.cpp)
-install(TARGETS linkedpools DESTINATION /usr/local/lib)
+install(TARGETS linkedpools DESTINATION lib)

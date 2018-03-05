@@ -8,6 +8,8 @@
 #include <thread>
 #endif
 
+namespace rpools {
+
 /**
  *  Represents a locking mechanism which uses light_lock_t on x86 systems
  *  and std::mutex on other systems.
@@ -26,5 +28,6 @@ private:
     std::mutex m_lock;
 #endif
 };
+}
 
 #endif // __L_M_LOCK_H__

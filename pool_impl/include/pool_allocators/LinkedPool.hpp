@@ -1,32 +1,11 @@
 #ifndef __LINKED_POOL_H__
 #define __LINKED_POOL_H__
 
-#include <unistd.h>
-#include <cmath>
-#include <cstdlib>
-#include <new>
+#include "pool_allocators/LinkedPool3.hpp"
 
-#include "pool_allocators/Node.hpp"
-#include "tools/LMLock.hpp"
-
-extern "C" {
-#include "avltree/avl_utils.h"
-}
-
-namespace efficient_pools {
+namespace rpools {
 
 using Pool = void*;
-
-/**
-   Every pool will have a PoolHeader, which contains information
-   about it. 'sizeOfPool' denotes the number of slots that are
-   occupied in the pool. 'head' denotes a Node which points to
-   the first free slot.
- */
-struct PoolHeader {
-    size_t sizeOfPool;
-    Node head;
-};
 
 /**
    LinkedPool is a pool allocation system which tries to minimise the amount
@@ -114,7 +93,7 @@ void LinkedPool<T>::deallocate(void* t_ptr) {
         reinterpret_cast<size_t>(t_ptr) & POOL_MASK
     );
     m_poolLock.lock();
-    if (pool->sizeOfPool == 1) {
+    if (pool->occupiedSlots == 1) {
         pool_remove(&m_freePools, pool);
         free(pool);
     } else {
@@ -123,7 +102,7 @@ void LinkedPool<T>::deallocate(void* t_ptr) {
         Node& head = pool->head;
         newNode->next = head.next;
         head.next = newNode;
-        if (--pool->sizeOfPool == m_poolSize - 1) {
+        if (--pool->occupiedSlots == m_poolSize - 1) {
             pool_insert(&m_freePools, pool);
         }
     }
@@ -149,7 +128,7 @@ void* LinkedPool<T>::nextFree(Pool t_ptr) {
     void* toReturn = head.next;
     if (head.next) {
         head.next = head.next->next;
-        if (++(header->sizeOfPool) == m_poolSize) {
+        if (++(header->occupiedSlots) == m_poolSize) {
             pool_remove(&m_freePools, t_ptr);
         }
     }

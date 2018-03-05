@@ -5,7 +5,7 @@
 
 #include "pool_allocators/GlobalLinkedPool.hpp"
 
-using namespace efficient_pools;
+using namespace rpools;
 
 const size_t GlobalLinkedPool::PAGE_SIZE = sysconf(_SC_PAGESIZE);
 

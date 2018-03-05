@@ -1,4 +1,4 @@
-#include "custom_operators/custom_new_delete_v1/custom_new_delete.hpp"
+#include "custom_new/custom_new_delete.hpp"
 
 #include <cmath>
 
@@ -7,7 +7,7 @@
 #include "tools/LMLock.hpp"
 
 namespace {
-    using efficient_pools::NSGlobalLinkedPool;
+    using namespace rpools;
 
     const size_t __threshold = 128; // malloc performs equally well
                                     // on objects of size > 128

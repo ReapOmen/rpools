@@ -1,5 +1,7 @@
 #include "tools/LMLock.hpp"
 
+using namespace rpools;
+
 LMLock::LMLock()
     : m_lock(
 #ifdef __x86_64

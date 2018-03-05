@@ -1,2 +1,0 @@
-add_subdirectory(debug)
-add_subdirectory(custom_new_delete_v1)

@@ -13,7 +13,7 @@ extern "C" {
 #include "avltree/avl_utils.h"
 }
 
-namespace efficient_pools3 {
+namespace rpools {
 
 using Pool = void*;
 

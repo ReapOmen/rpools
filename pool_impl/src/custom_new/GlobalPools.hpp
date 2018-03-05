@@ -27,11 +27,11 @@ public:
      *  Gets the `NSGlobalLinkedPool` that can hold objects of sizes up to
      *  `t_size * 8`.
      */
-    efficient_pools::NSGlobalLinkedPool& getPool(size_t t_size);
+    rpools::NSGlobalLinkedPool& getPool(size_t t_size);
     virtual ~GlobalPools() = default;
 private:
-    std::vector<efficient_pools::NSGlobalLinkedPool,
-                mallocator<efficient_pools::NSGlobalLinkedPool>
+    std::vector<rpools::NSGlobalLinkedPool,
+                mallocator<rpools::NSGlobalLinkedPool>
     > m_pools;
 };
 

@@ -4,6 +4,8 @@
 #include <cstddef>
 #include "pool_allocators/Node.hpp"
 
+namespace rpools {
+
 /**
  *  Every pool is allocated on a page boundary.
  *  The `PoolHeaderG` is placed at the first byte of the page and
@@ -34,5 +36,6 @@ struct PoolHeaderG {
             head.next == other.head.next;
     }
 };
+}
 
 #endif // __POOL_HEADER_G__

@@ -4,8 +4,7 @@
 #include "TestObject2.h"
 #include "pool_allocators/GlobalLinkedPool.hpp"
 #include "pool_allocators/NSGlobalLinkedPool.hpp"
-using efficient_pools::GlobalLinkedPool;
-using efficient_pools::NSGlobalLinkedPool;
+using namespace rpools;
 
 #include <thread>
 #include <mutex>

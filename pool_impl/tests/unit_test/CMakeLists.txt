@@ -20,8 +20,8 @@ add_test(NAME TestGlobalLinkedPool COMMAND test_global_linked_pool)
 # test custom_new_delete.cpp
 add_executable(test_custom_new_delete
   ${SRC}/tools/LMLock.cpp
-  ${SRC}/custom_operators/custom_new_delete_v1/GlobalPools.cpp
-  ${SRC}/custom_operators/custom_new_delete_v1/custom_new_delete.cpp
+  ${SRC}/custom_new/GlobalPools.cpp
+  ${SRC}/custom_new/custom_new_delete.cpp
   test_custom_new_delete.cpp)
 target_link_libraries(test_custom_new_delete PRIVATE linkedpools testrunner)
 add_test(NAME TestCustomNewDelete COMMAND test_custom_new_delete)

@@ -2,7 +2,7 @@
 
 #include "unit_test/TestObject.h"
 #include "pool_allocators/LinkedPool.hpp"
-using efficient_pools::LinkedPool;
+using rpools::LinkedPool;
 
 #include <vector>
 using std::vector;
