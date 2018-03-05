@@ -2,7 +2,7 @@
 
 #include "TestObject.h"
 #include "TestObject2.h"
-#include "pool_allocators/LinkedPool3.hpp"
+#include "rpools/allocators/LinkedPool3.hpp"
 using rpools::LinkedPool3;
 using rpools::PoolHeader;
 

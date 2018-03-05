@@ -6,11 +6,11 @@
 #include <cstdlib>
 #include <new>
 
-#include "pool_allocators/Node.hpp"
-#include "tools/LMLock.hpp"
+#include "rpools/allocators/Node.hpp"
+#include "rpools/tools/LMLock.hpp"
 
 extern "C" {
-#include "avltree/avl_utils.h"
+#include "rpools/avltree/avl_utils.h"
 }
 
 namespace rpools {

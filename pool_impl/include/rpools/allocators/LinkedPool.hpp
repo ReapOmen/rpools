@@ -1,7 +1,7 @@
 #ifndef __LINKED_POOL_H__
 #define __LINKED_POOL_H__
 
-#include "pool_allocators/LinkedPool3.hpp"
+#include "rpools/allocators/LinkedPool3.hpp"
 
 namespace rpools {
 

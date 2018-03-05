@@ -36,7 +36,7 @@ OTHER DEALINGS IN THE SOFTWARE.
     #endif
 #endif
 
-#include "avltree/avltree.h"
+#include "rpools/avltree/avltree.h"
 
 #define max(a,b)    (((a) > (b)) ? (a) : (b))
 

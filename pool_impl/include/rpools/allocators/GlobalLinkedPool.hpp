@@ -2,10 +2,10 @@
 #define __GLOBAL_LINKED_POOL_H__
 
 extern "C" {
-#include "avltree/avl_utils.h"
+#include "rpools/avltree/avl_utils.h"
 }
-#include "pool_allocators/PoolHeaderG.hpp"
-#include "tools/LMLock.hpp"
+#include "rpools/allocators/PoolHeaderG.hpp"
+#include "rpools/tools/LMLock.hpp"
 
 namespace rpools {
 

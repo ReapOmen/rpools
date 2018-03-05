@@ -3,8 +3,8 @@
 
 #include <vector>
 
-#include "tools/mallocator.hpp"
-#include "pool_allocators/NSGlobalLinkedPool.hpp"
+#include "rpools/tools/mallocator.hpp"
+#include "rpools/allocators/NSGlobalLinkedPool.hpp"
 
 /**
  *  Represents a class which holds `NSGlobalLinkedPool`s that can

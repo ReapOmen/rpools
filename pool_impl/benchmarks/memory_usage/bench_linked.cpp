@@ -1,7 +1,7 @@
 #include <string>
 
 #include "unit_test/TestObject.h"
-#include "pool_allocators/LinkedPool.hpp"
+#include "rpools/allocators/LinkedPool.hpp"
 using rpools::LinkedPool;
 
 #include <vector>

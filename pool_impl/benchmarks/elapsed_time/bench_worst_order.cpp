@@ -18,9 +18,9 @@
 #ifdef INCLUDE_BOOST
 #include <boost/pool/object_pool.hpp>
 #endif
-#include "pool_allocators/MemoryPool.h"
-#include "pool_allocators/LinkedPool.hpp"
-#include "pool_allocators/LinkedPool3.hpp"
+#include "rpools/allocators/MemoryPool.h"
+#include "rpools/allocators/LinkedPool.hpp"
+#include "rpools/allocators/LinkedPool3.hpp"
 
 using rpools::LinkedPool;
 using rpools::LinkedPool3;

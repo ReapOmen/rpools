@@ -2,8 +2,8 @@
 
 #include "TestObject.h"
 #include "TestObject2.h"
-#include "pool_allocators/GlobalLinkedPool.hpp"
-#include "pool_allocators/NSGlobalLinkedPool.hpp"
+#include "rpools/allocators/GlobalLinkedPool.hpp"
+#include "rpools/allocators/NSGlobalLinkedPool.hpp"
 using namespace rpools;
 
 #include <thread>

@@ -28,7 +28,7 @@
 #include <vector>
 
 #ifdef __x86_64
-#include "tools/light_lock.h"
+#include "rpools/tools/light_lock.h"
 #else
 #include <mutex>
 #include <thread>

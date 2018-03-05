@@ -1,10 +1,10 @@
 #ifndef __NS_GLOBAL_LINKED_POOL_H__
 #define __NS_GLOBAL_LINKED_POOL_H__
 
-#include "pool_allocators/PoolHeaderG.hpp"
+#include "rpools/allocators/PoolHeaderG.hpp"
 
 extern "C" {
-#include "avltree/avl_utils.h"
+#include "rpools/avltree/avl_utils.h"
 }
 
 namespace rpools {

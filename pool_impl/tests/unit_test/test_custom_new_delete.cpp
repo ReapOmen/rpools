@@ -3,8 +3,8 @@
 #include <vector>
 using std::vector;
 
-#include "custom_new/custom_new_delete.hpp"
-#include "pool_allocators/NSGlobalLinkedPool.hpp"
+#include "rpools/custom_new/custom_new_delete.hpp"
+#include "rpools/allocators/NSGlobalLinkedPool.hpp"
 using rpools::NSGlobalLinkedPool;
 
 TEST_CASE("Allocations between 0 and 128 bytes have correct alignment",

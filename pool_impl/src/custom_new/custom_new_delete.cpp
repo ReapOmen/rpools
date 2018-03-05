@@ -1,10 +1,10 @@
-#include "custom_new/custom_new_delete.hpp"
+#include "rpools/custom_new/custom_new_delete.hpp"
 
 #include <cmath>
 
-#include "tools/FreeDeleter.hpp"
+#include "rpools/tools/FreeDeleter.hpp"
 #include "GlobalPools.hpp"
-#include "tools/LMLock.hpp"
+#include "rpools/tools/LMLock.hpp"
 
 namespace {
     using namespace rpools;

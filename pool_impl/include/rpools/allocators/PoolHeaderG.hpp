@@ -2,7 +2,7 @@
 #define __POOL_HEADER_G__
 
 #include <cstddef>
-#include "pool_allocators/Node.hpp"
+#include "rpools/allocators/Node.hpp"
 
 namespace rpools {
 

@@ -3,7 +3,7 @@
 #include <cstdlib>
 #include <new>
 
-#include "pool_allocators/NSGlobalLinkedPool.hpp"
+#include "rpools/allocators/NSGlobalLinkedPool.hpp"
 
 using namespace rpools;
 
