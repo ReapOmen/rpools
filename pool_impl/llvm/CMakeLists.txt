@@ -5,4 +5,4 @@ add_library(LLVMCustomNewPassDebug MODULE
   common.cpp
   CustomNewDeleteDebug.cpp)
 
-install(TARGETS LLVMCustomNewPass LLVMCustomNewPassDebug DESTINATION lib/rpools)
+install(TARGETS LLVMCustomNewPass LLVMCustomNewPassDebug DESTINATION lib)
