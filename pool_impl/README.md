@@ -95,7 +95,7 @@ Note: Make sure `generate_alloc_file.py` was run and the project was built.
 
 ## Licenses!
 Everything is GPLv3 except for the following files which have their own license:
-* `include/tools/light_lock.h` (check source)
+* `include/rpools/tools/light_lock.h` (check source)
 * `src/avltree/avltree.c` (check source)
-* `include/avltree/avltree.h` (check source)
-* `src/pool_allocators/MemoryPool.h` (MIT)
+* `include/rpools/avltree/avltree.h` (check source)
+* `src/allocators/MemoryPool.h` (MIT)
