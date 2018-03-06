@@ -2,9 +2,9 @@
 
 #include "TestObject.h"
 #include "TestObject2.h"
-#include "pool_allocators/LinkedPool.hpp"
-using efficient_pools::LinkedPool;
-using efficient_pools::PoolHeader;
+#include "rpools/allocators/LinkedPool.hpp"
+using rpools::LinkedPool;
+using rpools::PoolHeader;
 
 template<typename T>
 void test_pool_size() {

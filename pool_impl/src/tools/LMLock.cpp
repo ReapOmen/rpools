@@ -1,4 +1,6 @@
-#include "LMLock.hpp"
+#include "rpools/tools/LMLock.hpp"
+
+using namespace rpools;
 
 LMLock::LMLock()
     : m_lock(

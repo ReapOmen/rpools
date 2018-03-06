@@ -3,7 +3,9 @@
 #include <vector>
 using std::vector;
 
-#include "custom_operators/custom_new_delete_v1/custom_new_delete.hpp"
+#include "rpools/custom_new/custom_new_delete.hpp"
+#include "rpools/allocators/NSGlobalLinkedPool.hpp"
+using rpools::NSGlobalLinkedPool;
 
 TEST_CASE("Allocations between 0 and 128 bytes have correct alignment",
           "[custom_new_delete]") {

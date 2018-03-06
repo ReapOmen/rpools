@@ -3,8 +3,8 @@
 
 #include <vector>
 
-#include "tools/mallocator.hpp"
-#include "pool_allocators/NSGlobalLinkedPool.hpp"
+#include "rpools/tools/mallocator.hpp"
+#include "rpools/allocators/NSGlobalLinkedPool.hpp"
 
 /**
  *  Represents a class which holds `NSGlobalLinkedPool`s that can
@@ -27,11 +27,11 @@ public:
      *  Gets the `NSGlobalLinkedPool` that can hold objects of sizes up to
      *  `t_size * 8`.
      */
-    efficient_pools::NSGlobalLinkedPool& getPool(size_t t_size);
+    rpools::NSGlobalLinkedPool& getPool(size_t t_size);
     virtual ~GlobalPools() = default;
 private:
-    std::vector<efficient_pools::NSGlobalLinkedPool,
-                mallocator<efficient_pools::NSGlobalLinkedPool>
+    std::vector<rpools::NSGlobalLinkedPool,
+                mallocator<rpools::NSGlobalLinkedPool>
     > m_pools;
 };
 

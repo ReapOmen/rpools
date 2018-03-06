@@ -4,7 +4,7 @@
 
 static auto pid =  getpid();
 
-std::string __getStatusField(const std::string& field) {
+static std::string __getStatusField(const std::string& field) {
     std::ifstream f("/proc/" + std::to_string(pid) + "/status");
 
     std::string temp = "";

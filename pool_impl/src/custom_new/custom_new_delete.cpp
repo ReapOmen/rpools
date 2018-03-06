@@ -1,14 +1,13 @@
-#ifndef __CUSTOM_NEW_DELETE_H__
-#define __CUSTOM_NEW_DELETE_H__
+#include "rpools/custom_new/custom_new_delete.hpp"
 
 #include <cmath>
 
-#include "tools/FreeDeleter.hpp"
+#include "rpools/tools/FreeDeleter.hpp"
 #include "GlobalPools.hpp"
-#include "tools/LMLock.hpp"
+#include "rpools/tools/LMLock.hpp"
 
 namespace {
-    using efficient_pools::NSGlobalLinkedPool;
+    using namespace rpools;
 
     const size_t __threshold = 128; // malloc performs equally well
                                     // on objects of size > 128
@@ -24,15 +23,7 @@ namespace {
     LMLock __lock;
 }
 
-/**
- *  Allocates `t_size` bytes and aligns it according to `t_alignment`.
- *  @note This function will return a nullptr when allocation fails.
- *  @param t_size the size of the allocation
- *  @param t_alignment the alignment of the allocation
- *  @return a pointer aligned to `t_alignment` of size `t_size`.
- */
-void* custom_new_no_throw(size_t t_size,
-                          size_t t_alignment=alignof(max_align_t)) {
+void* custom_new_no_throw(size_t t_size, size_t t_alignment) {
     // use malloc for large sizes or if we are dealing with
     // alignments that are not 2, 4, 8, 16
     if ((alignof(max_align_t) & (t_alignment - 1)) != 0 || t_size > __threshold) {
@@ -69,15 +60,7 @@ void* custom_new_no_throw(size_t t_size,
     }
 }
 
-/**
- *  Allocates `t_size` bytes and aligns it according to `t_alignment`.
- *  @note This function throws bad_alloc when allocation fails.
- *  @param t_size the size of the allocation
- *  @param t_alignment the alignment of the allocation
- *  @return a pointer aligned to `t_alignment` of size `t_size`.
- */
-void* custom_new(size_t t_size,
-                 size_t t_alignment=alignof(max_align_t)) {
+void* custom_new(size_t t_size, size_t t_alignment) {
     void* toRet = custom_new_no_throw(t_size, t_alignment);
     if (toRet == nullptr) {
         throw std::bad_alloc();
@@ -85,10 +68,6 @@ void* custom_new(size_t t_size,
     return toRet;
 }
 
-/**
- *  Frees up the memory that starts at `t_ptr`.
- *  @param t_ptr the pointer that is freed
- */
 void custom_delete(void* t_ptr) noexcept {
     // find out if the pointer was allocated with malloc
     // or within a pool
@@ -115,4 +94,52 @@ void custom_delete(void* t_ptr) noexcept {
     __lock.unlock();
 }
 
-#endif // __CUSTOM_NEW_DELETE_H__
+// list of all new functions:
+//   http://en.cppreference.com/w/cpp/memory/new/operator_new
+// list of all delete functions:
+//   http://en.cppreference.com/w/cpp/memory/new/operator_delete
+
+// Some operators are not implemented because their default
+// implementation will not break custom_new/custom_delete
+
+// Note that the C++14/17/20 operators are not included!
+
+void* operator new(std::size_t t_size) {
+    return custom_new(t_size);
+}
+
+void* operator new(std::size_t t_size, const std::nothrow_t& nothrow_value) noexcept {
+    return custom_new_no_throw(t_size);
+}
+
+void operator delete(void* t_ptr) noexcept {
+    if (t_ptr != nullptr) {
+        custom_delete(t_ptr);
+    }
+}
+
+void operator delete(void* t_ptr, const std::nothrow_t& nothrow_value) noexcept {
+    if (t_ptr != nullptr) {
+        custom_delete(t_ptr);
+    }
+}
+
+void* operator new[](std::size_t t_size) {
+    void* toRet = custom_new(t_size);
+    if (toRet == nullptr) {
+        throw std::bad_alloc();
+    }
+    return toRet;
+}
+
+void* operator new[](std::size_t t_size, const std::nothrow_t& nothrow_value) noexcept {
+    return custom_new_no_throw(t_size);
+}
+
+void operator delete[](void* t_ptr) noexcept {
+    custom_delete(t_ptr);
+}
+
+void operator delete[](void* t_ptr, const std::nothrow_t& nothrow_value) noexcept {
+    custom_delete(t_ptr);
+}

@@ -2,9 +2,9 @@
 
 #include "TestObject.h"
 #include "TestObject2.h"
-#include "pool_allocators/LinkedPool3.hpp"
-using efficient_pools3::LinkedPool3;
-using efficient_pools3::PoolHeader;
+#include "rpools/allocators/LinkedPool3.hpp"
+using rpools::LinkedPool3;
+using rpools::PoolHeader;
 
 #include <thread>
 #include <mutex>

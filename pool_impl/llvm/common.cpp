@@ -1,7 +1,7 @@
 #include <cxxabi.h>
 #include <algorithm>
 
-#include "common.h"
+#include "common.hpp"
 
 using namespace custom_pass;
 using std::string;

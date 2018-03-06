@@ -1,5 +1,5 @@
-#include "custom_new_delete_debug.hpp"
-#include "tools/AllocCollector.hpp"
+#include "rpools/custom_new/custom_new_delete_debug.hpp"
+#include "AllocCollector.hpp"
 
 namespace {
     AllocCollector ac;

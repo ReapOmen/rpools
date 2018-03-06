@@ -1,7 +1,7 @@
 #include <string>
 
 #include "unit_test/TestObject.h"
-#include "pool_allocators/MemoryPool.h"
+#include "rpools/allocators/MemoryPool.h"
 
 #include <vector>
 using std::vector;

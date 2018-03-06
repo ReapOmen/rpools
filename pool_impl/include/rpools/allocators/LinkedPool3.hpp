@@ -5,20 +5,15 @@
 #include <cmath>
 #include <cstdlib>
 #include <new>
-#include "Node.hpp"
+
+#include "rpools/allocators/Node.hpp"
+#include "rpools/tools/LMLock.hpp"
 
 extern "C" {
-#include "avltree/avl_utils.h"
+#include "rpools/avltree/avl_utils.h"
 }
 
-#ifdef __x86_64
-#include "tools/light_lock.h"
-#else
-#include <mutex>
-#include <thread>
-#endif
-
-namespace efficient_pools3 {
+namespace rpools {
 
 using Pool = void*;
 
@@ -88,11 +83,7 @@ public:
 
 private:
     avl_tree m_freePools;
-#ifdef __x86_64
-    light_lock_t m_poolLock;
-#else
-    std::mutex m_poolLock;
-#endif
+    LMLock m_poolLock;
     size_t m_headerPadding = 0;
     size_t m_slotSize;
     size_t m_poolSize = 0;
@@ -119,11 +110,7 @@ const size_t LinkedPool3<T>::POOL_MASK = ~0 >> (size_t) std::log2(LinkedPool3::P
 template<typename T>
 LinkedPool3<T>::LinkedPool3()
     : m_freePools(),
-      m_poolLock(
-#ifdef __x86_64
-          LIGHT_LOCK_INIT
-#endif
-      ),
+      m_poolLock(),
       m_slotSize(sizeof(T) < sizeof(Node) ? sizeof(Node) : sizeof(T)) {
     // make sure the first slot starts at a proper alignment
     size_t diff = sizeof(PoolHeader) % alignof(T);
@@ -140,11 +127,7 @@ LinkedPool3<T>::LinkedPool3()
 
 template<typename T>
 void* LinkedPool3<T>::allocate() {
-#ifdef __x86_64
-    light_lock(&m_poolLock);
-#else
-    std::lock_guard<std::mutex> lock(m_poolLock);
-#endif
+    m_poolLock.lock();
     // use the cached pool to get the next slot
     if (m_freePool) {
         return nextFree(m_freePool);
@@ -172,11 +155,7 @@ void LinkedPool3<T>::deallocate(void* t_ptr) {
     auto pool = reinterpret_cast<PoolHeader*>(
         reinterpret_cast<size_t>(t_ptr) & POOL_MASK
     );
-#ifdef __x86_64
-    light_lock(&m_poolLock);
-#else
-    std::lock_guard<std::mutex> lock(m_poolLock);
-#endif
+    m_poolLock.lock();
     // the last slot was deallocated => free the page
     if (pool->occupiedSlots == 1) {
         pool_remove(&m_freePools, pool);
@@ -195,9 +174,7 @@ void LinkedPool3<T>::deallocate(void* t_ptr) {
             pool_insert(&m_freePools, pool);
         }
     }
-#ifdef __x86_64
-    light_unlock(&m_poolLock);
-#endif
+    m_poolLock.unlock();
 }
 
 template<typename T>
@@ -228,9 +205,7 @@ void* LinkedPool3<T>::nextFree(Pool t_ptr) {
             m_freePool = pool_first(&m_freePools);
         }
     }
-#ifdef __x86_64
-    light_unlock(&m_poolLock);
-#endif
+    m_poolLock.unlock();
     return toReturn;
 }
 

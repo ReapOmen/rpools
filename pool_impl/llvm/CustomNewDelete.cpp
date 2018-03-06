@@ -13,7 +13,7 @@
 #include <vector>
 #include <map>
 
-#include "common.h"
+#include "common.hpp"
 
 using namespace llvm;
 using namespace legacy;

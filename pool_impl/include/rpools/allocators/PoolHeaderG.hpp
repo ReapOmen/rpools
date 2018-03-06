@@ -2,7 +2,9 @@
 #define __POOL_HEADER_G__
 
 #include <cstddef>
-#include "Node.hpp"
+#include "rpools/allocators/Node.hpp"
+
+namespace rpools {
 
 /**
  *  Every pool is allocated on a page boundary.
@@ -34,5 +36,6 @@ struct PoolHeaderG {
             head.next == other.head.next;
     }
 };
+}
 
 #endif // __POOL_HEADER_G__

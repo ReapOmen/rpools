@@ -2,12 +2,12 @@
 #define __GLOBAL_LINKED_POOL_H__
 
 extern "C" {
-#include "avltree/avl_utils.h"
+#include "rpools/avltree/avl_utils.h"
 }
-#include "PoolHeaderG.hpp"
-#include "tools/LMLock.hpp"
+#include "rpools/allocators/PoolHeaderG.hpp"
+#include "rpools/tools/LMLock.hpp"
 
-namespace efficient_pools {
+namespace rpools {
 
 using Pool = void*;
 

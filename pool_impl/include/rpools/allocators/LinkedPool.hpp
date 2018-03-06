@@ -1,38 +1,11 @@
 #ifndef __LINKED_POOL_H__
 #define __LINKED_POOL_H__
 
-#include <unistd.h>
-#include <cmath>
-#include <cstdlib>
-#include <new>
+#include "rpools/allocators/LinkedPool3.hpp"
 
-#include "Node.hpp"
-
-extern "C" {
-#include "avltree/avl_utils.h"
-}
-
-#ifdef __x86_64
-#include "tools/light_lock.h"
-#else
-#include <mutex>
-#include <thread>
-#endif
-
-namespace efficient_pools {
+namespace rpools {
 
 using Pool = void*;
-
-/**
-   Every pool will have a PoolHeader, which contains information
-   about it. 'sizeOfPool' denotes the number of slots that are
-   occupied in the pool. 'head' denotes a Node which points to
-   the first free slot.
- */
-struct PoolHeader {
-    size_t sizeOfPool;
-    Node head;
-};
 
 /**
    LinkedPool is a pool allocation system which tries to minimise the amount
@@ -72,11 +45,7 @@ public:
 
 private:
     avl_tree m_freePools;
-#ifdef __x86_64
-    light_lock_t m_poolLock;
-#else
-    std::mutex m_poolLock;
-#endif
+    LMLock m_poolLock;
     const size_t m_poolSize;
 
     void constructPoolHeader(Pool t_ptr);
@@ -97,22 +66,14 @@ const size_t LinkedPool<T>::POOL_MASK = -1 >> (size_t) std::log2(LinkedPool::PAG
 template<typename T>
 LinkedPool<T>::LinkedPool()
     : m_freePools(),
-      m_poolLock(
-#ifdef __x86_64
-          LIGHT_LOCK_INIT
-#endif
-      ),
+      m_poolLock(),
       m_poolSize((PAGE_SIZE - sizeof(PoolHeader)) / sizeof(T)) {
     avl_init(&m_freePools, nullptr);
 }
 
 template<typename T>
 void* LinkedPool<T>::allocate() {
-#ifdef __x86_64
-    light_lock(&m_poolLock);
-#else
-    std::lock_guard<std::mutex> lock(m_poolLock);
-#endif
+    m_poolLock.lock();
     Pool freePool = pool_first(&m_freePools);
     if (freePool) {
         return nextFree(freePool);
@@ -131,12 +92,8 @@ void LinkedPool<T>::deallocate(void* t_ptr) {
     auto pool = reinterpret_cast<PoolHeader*>(
         reinterpret_cast<size_t>(t_ptr) & POOL_MASK
     );
-#ifdef __x86_64
-    light_lock(&m_poolLock);
-#else
-    std::lock_guard<std::mutex> lock(m_poolLock);
-#endif
-    if (pool->sizeOfPool == 1) {
+    m_poolLock.lock();
+    if (pool->occupiedSlots == 1) {
         pool_remove(&m_freePools, pool);
         free(pool);
     } else {
@@ -145,13 +102,11 @@ void LinkedPool<T>::deallocate(void* t_ptr) {
         Node& head = pool->head;
         newNode->next = head.next;
         head.next = newNode;
-        if (--pool->sizeOfPool == m_poolSize - 1) {
+        if (--pool->occupiedSlots == m_poolSize - 1) {
             pool_insert(&m_freePools, pool);
         }
     }
-#ifdef __x86_64
-    light_unlock(&m_poolLock);
-#endif
+    m_poolLock.unlock();
 }
 
 template<typename T>
@@ -173,13 +128,11 @@ void* LinkedPool<T>::nextFree(Pool t_ptr) {
     void* toReturn = head.next;
     if (head.next) {
         head.next = head.next->next;
-        if (++(header->sizeOfPool) == m_poolSize) {
+        if (++(header->occupiedSlots) == m_poolSize) {
             pool_remove(&m_freePools, t_ptr);
         }
     }
-#ifdef __x86_64
-    light_unlock(&m_poolLock);
-#endif
+    m_poolLock.unlock();
     return toReturn;
 }
 

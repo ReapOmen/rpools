@@ -3,9 +3,9 @@
 #include <cstdlib>
 #include <new>
 
-#include "NSGlobalLinkedPool.hpp"
+#include "rpools/allocators/NSGlobalLinkedPool.hpp"
 
-using namespace efficient_pools;
+using namespace rpools;
 
 const size_t NSGlobalLinkedPool::PAGE_SIZE = sysconf(_SC_PAGESIZE);
 

@@ -14,7 +14,7 @@
 #include <map>
 #include <string>
 
-#include "common.h"
+#include "common.hpp"
 
 using namespace llvm;
 using namespace legacy;

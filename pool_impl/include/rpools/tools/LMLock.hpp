@@ -2,11 +2,13 @@
 #define __L_M_LOCK_H__
 
 #ifdef __x86_64
-#include "light_lock.h"
+#include "rpools/tools/light_lock.h"
 #else
 #include <mutex>
 #include <thread>
 #endif
+
+namespace rpools {
 
 /**
  *  Represents a locking mechanism which uses light_lock_t on x86 systems
@@ -26,5 +28,6 @@ private:
     std::mutex m_lock;
 #endif
 };
+}
 
 #endif // __L_M_LOCK_H__

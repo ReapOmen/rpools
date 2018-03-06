@@ -80,7 +80,7 @@ def add_to_cmake(files):
             for file in files:
                 f.write('add_executable({} {})\n'.format(file.split('.')[0],
                                                          file))
-                link_libs = 'target_link_libraries({} avltree)\n'
+                link_libs = 'target_link_libraries({} linkedpools)\n'
                 link_libs = link_libs.format(file.split('.')[0])
                 f.write(link_libs)
 
