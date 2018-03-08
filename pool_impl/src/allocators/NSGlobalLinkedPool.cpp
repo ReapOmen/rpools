@@ -1,17 +1,9 @@
-#include <unistd.h>
-#include <cmath>
 #include <cstdlib>
 #include <new>
 
 #include "rpools/allocators/NSGlobalLinkedPool.hpp"
 
 using namespace rpools;
-
-const size_t NSGlobalLinkedPool::PAGE_SIZE = sysconf(_SC_PAGESIZE);
-
-const size_t NSGlobalLinkedPool::POOL_MASK = ~0 >>
-    (size_t) std::log2(NSGlobalLinkedPool::PAGE_SIZE)
-    << (size_t) std::log2(NSGlobalLinkedPool::PAGE_SIZE);
 
 NSGlobalLinkedPool::NSGlobalLinkedPool(size_t t_sizeOfObjects,
                                        size_t t_alignment)
@@ -21,16 +13,16 @@ NSGlobalLinkedPool::NSGlobalLinkedPool(size_t t_sizeOfObjects,
       m_slotSize(m_sizeOfObjects) {
     avl_init(&m_freePools, nullptr);
     // make sure the first slot starts at a proper alignment
-    size_t diff = sizeof(PoolHeaderG) & (t_alignment - 1);
+    size_t diff = mod(sizeof(PoolHeaderG), t_alignment);
     if (diff != 0) {
         m_headerPadding += t_alignment - diff;
     }
     // make sure that slots are properly aligned
-    diff = m_slotSize & (t_alignment - 1);
+    diff = mod(m_slotSize, t_alignment);
     if (diff != 0) {
         m_slotSize += t_alignment - diff;
     }
-    m_poolSize = (PAGE_SIZE - sizeof(PoolHeaderG) - m_headerPadding) /
+    m_poolSize = (getPageSize() - sizeof(PoolHeaderG) - m_headerPadding) /
         m_slotSize;
 }
 
@@ -43,7 +35,7 @@ void* NSGlobalLinkedPool::allocate() {
             return nextFree(pool);
         } else {
             // create a new pool because there are no free pool slots left
-            Pool pool = aligned_alloc(PAGE_SIZE, PAGE_SIZE);
+            Pool pool = aligned_alloc(getPageSize(), getPageSize());
             constructPoolHeader(reinterpret_cast<char*>(pool));
             pool_insert(&m_freePools, pool);
             m_freePool = pool;
@@ -55,7 +47,7 @@ void* NSGlobalLinkedPool::allocate() {
 void NSGlobalLinkedPool::deallocate(void* t_ptr) {
     // get the pool of ptr
     auto pool = reinterpret_cast<PoolHeaderG*>(
-        reinterpret_cast<size_t>(t_ptr) & POOL_MASK
+        reinterpret_cast<size_t>(t_ptr) & getPoolMask()
     );
     if (pool->occupiedSlots == 1) {
         pool_remove(&m_freePools, pool);
@@ -107,6 +99,6 @@ void* NSGlobalLinkedPool::nextFree(Pool pool) {
 }
 
 const PoolHeaderG& NSGlobalLinkedPool::getPoolHeader(void* t_ptr) {
-    size_t poolAddress = reinterpret_cast<size_t>(t_ptr) & POOL_MASK;
+    size_t poolAddress = reinterpret_cast<size_t>(t_ptr) & getPoolMask();
     return *reinterpret_cast<PoolHeaderG*>(poolAddress);
 }

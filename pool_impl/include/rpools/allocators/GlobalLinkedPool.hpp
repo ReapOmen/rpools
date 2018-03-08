@@ -6,6 +6,7 @@ extern "C" {
 }
 #include "rpools/allocators/PoolHeaderG.hpp"
 #include "rpools/tools/LMLock.hpp"
+#include "rpools/tools/pool_utils.hpp"
 
 namespace rpools {
 
@@ -23,13 +24,6 @@ using Pool = void*;
  */
 class GlobalLinkedPool {
 public:
-    /** The page size of the system. */
-    static const size_t PAGE_SIZE;
-    /** Mask which is used to get the `PoolHeader` in constant time.
-     *  Because `PoolHeader`s are page aligned, masking a pointer that is
-     *  allocated in a pool will give the address of the pool's `PoolHeader`.
-     */
-    static const size_t POOL_MASK;
 
     /**
      *  Creates a `GlobalLinkedPool` allocator that will allocate objects of the

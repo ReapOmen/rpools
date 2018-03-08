@@ -26,10 +26,9 @@ namespace {
 void* custom_new_no_throw(size_t t_size, size_t t_alignment) {
     // use malloc for large sizes or if we are dealing with
     // alignments that are not 2, 4, 8, 16
-    if ((alignof(max_align_t) & (t_alignment - 1)) != 0 || t_size > __threshold) {
+    if (mod(alignof(max_align_t), t_alignment) != 0 || t_size > __threshold) {
         void* addr = aligned_alloc(t_alignment, t_size);
-        auto maskedAddr = reinterpret_cast<size_t>(addr) &
-            NSGlobalLinkedPool::POOL_MASK;
+        auto maskedAddr = reinterpret_cast<size_t>(addr) & getPoolMask();
         auto page = reinterpret_cast<void*>(maskedAddr);
         __lock.lock();
         auto res = _get_entry(page_get(__mallocedPages.get(), page),
@@ -52,7 +51,7 @@ void* custom_new_no_throw(size_t t_size, size_t t_alignment) {
         // 16, have alignment 8, otherwise 16
         // 40 % 16 != 0 -> place the request in a pool that holds
         // objects of size 48 (also note 48 % 16 == 0 -> has an alignment of 16)
-        t_size += (t_size & (t_alignment - 1)) == 0 ? 0 : sizeof(void*);
+        t_size += (mod(t_size, t_alignment)) == 0 ? 0 : sizeof(void*);
         __lock.lock();
         void* addr = __pools.getPool(t_size).allocate();
         __lock.unlock();
@@ -72,7 +71,7 @@ void custom_delete(void* t_ptr) noexcept {
     // find out if the pointer was allocated with malloc
     // or within a pool
     auto addr = reinterpret_cast<size_t>(t_ptr);
-    auto page = reinterpret_cast<void*>(addr & NSGlobalLinkedPool::POOL_MASK);
+    auto page = reinterpret_cast<void*>(addr & getPoolMask());
     __lock.lock();
     avl_node* kv = page_get(__mallocedPages.get(), page);
     auto res = _get_entry(kv, PageNode, avl);

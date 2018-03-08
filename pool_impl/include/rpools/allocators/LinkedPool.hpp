@@ -2,29 +2,24 @@
 #define __LINKED_POOL_H__
 
 #include "rpools/allocators/LinkedPool3.hpp"
-#include <iostream>
-
 
 namespace rpools {
 
 using Pool = void*;
 
 /**
-   LinkedPool is a pool allocation system which tries to minimise the amount
-   of overheads created by allocating lots of objects on the heap.
-   It works by allocating pools in chunks of PAGE_SIZE which makes deallocation
-   very quick.
+ *  LinkedPool is a pool allocation system which tries to minimise the amount
+ *  of overheads created by allocating lots of objects on the heap.
+ *  It works by allocating pools in chunks of PAGE_SIZE which makes deallocation
+ *  very quick.
  */
 template<typename T>
 class LinkedPool {
 public:
-    static long int getPageSize();
-    // mask which is used to get the PoolHeader in constant time
-    static size_t getPoolMask();
 
     /**
-       Creates a LinkedPool allocator that will allocate objects of type T
-       in pools and return pointers to them.
+     *  Creates a LinkedPool allocator that will allocate objects of type T
+     *  in pools and return pointers to them.
      */
     LinkedPool();
 
@@ -53,22 +48,9 @@ private:
     void constructPoolHeader(Pool t_ptr);
 
     /**
-       Returns a pointer to the next free slot of memory from the given Pool.
+     *  Returns a pointer to the next free slot of memory from the given Pool.
      */
     void* nextFree(Pool t_ptr);
-};
-
-template<typename T>
-long int LinkedPool<T>::getPageSize() {
-    static long int pageSize = sysconf(_SC_PAGESIZE);
-    return pageSize;
-};
-
-template<typename T>
-size_t LinkedPool<T>::getPoolMask() {
-    static size_t mask = ~0 >> (size_t) std::log2(LinkedPool::getPageSize())
-			    << (size_t) std::log2(LinkedPool::getPageSize());
-    return mask;
 };
   
 template<typename T>

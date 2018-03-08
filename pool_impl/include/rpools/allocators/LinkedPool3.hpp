@@ -1,13 +1,12 @@
 #ifndef __LINKED_POOL_3_H__
 #define __LINKED_POOL_3_H__
 
-#include <unistd.h>
-#include <cmath>
 #include <cstdlib>
 #include <new>
 
 #include "rpools/allocators/Node.hpp"
 #include "rpools/tools/LMLock.hpp"
+#include "rpools/tools/pool_utils.hpp"
 
 extern "C" {
 #include "rpools/avltree/avl_utils.h"
@@ -41,17 +40,10 @@ struct PoolHeader {
 template<typename T>
 class LinkedPool3 {
 public:
-    /** The page size of the system. */
-    static long int getPageSize();
-    /** Mask which is used to get the `PoolHeader` in constant time.
-     *  Because `PoolHeader`s are page aligned, masking a pointer that is
-     *  allocated in a pool will give the address of the pool's `PoolHeader`.
-     */
-    static size_t getPoolMask();
 
     /**
-       Creates a `LinkedPool` allocator that will allocate objects of type T
-       in pools and return pointers to them.
+     *  Creates a `LinkedPool` allocator that will allocate objects of type T
+     *  in pools and return pointers to them.
      */
     LinkedPool3();
 
@@ -89,7 +81,8 @@ private:
     size_t m_poolSize = 0;
     Pool m_freePool = nullptr;
 
-    /** Creates a `PoolHeader` at **t_ptr**
+    /** 
+     *  Creates a `PoolHeader` at **t_ptr**
      *  @param t_ptr the address where the `PoolHeader` is created
      */
     void constructPoolHeader(Pool t_ptr);
@@ -99,19 +92,6 @@ private:
      */
     void* nextFree(Pool t_ptr);
 };
-
-template<typename T>
-long int LinkedPool3<T>::getPageSize() {
-    static long int pageSize = sysconf(_SC_PAGESIZE);
-    return pageSize;
-};
-
-template<typename T>
-size_t LinkedPool3<T>::getPoolMask() {
-    static size_t mask = ~0 >> (size_t) std::log2(LinkedPool3::getPageSize())
-			    << (size_t) std::log2(LinkedPool3::getPageSize());
-    return mask;
-};
   
 template<typename T>
 LinkedPool3<T>::LinkedPool3()
@@ -119,12 +99,12 @@ LinkedPool3<T>::LinkedPool3()
       m_poolLock(),
       m_slotSize(sizeof(T) < sizeof(Node) ? sizeof(Node) : sizeof(T)) {
     // make sure the first slot starts at a proper alignment
-    size_t diff = sizeof(PoolHeader) % alignof(T);
+    size_t diff = mod(sizeof(PoolHeader), alignof(T));
     if (diff != 0) {
         m_headerPadding += alignof(T) - diff;
     }
     // make sure that slots are properly aligned
-    diff = m_slotSize % alignof(T);
+    diff = mod(m_slotSize, alignof(T));
     if (diff != 0) {
         m_slotSize += alignof(T) - diff;
     }
