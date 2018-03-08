@@ -10,26 +10,7 @@ to include allocation benchmarks (**optional**)
 is built)
 * `pip install -r ./requirements.txt` will install all the dependencies of
 all python scripts
-* `clang++ -Xclang -load -Xclang /path/to/libLLVMCustomNewPass.so -o
-hello /path/to/hello.cpp -lcustomnew` will compile `hello.cpp` with `clang`
-and run a special pass on the file in which all calls to `operator new/delete`
-will get replaced by `custom_new/delete`.
 
-## LLVM CustomNewDeleteDebug pass
-
-This pass collects allocation information (type name, type size, allocation size,
-function name, etc.) during runtime by injecting
-`libcustomnewdebug` into the compiled program. If the executable is run, an
-`object_snapshots_<PID>.json` is generated.
-
-`clang++ -Xclang -load -Xclang /path/to/libLLVMCustomNewDebugPass.so -o
-hello /path/to/hello.cpp -lcustomnewdebug` will compile hello with
-the debug pass.
-
-The command `./generate_obj_alloc_html.py -f /path/to/object_snapshots_<PID>.json`
-will generate an HTML file which will render the results into table format.
-
-Make sure `cd debug && npm install` is run before generation.
 
 ## plot_elapsed_time.py
 
@@ -64,14 +45,12 @@ Usage (make sure you build the project first):
 
 This is a script which is used to run an executable with a custom new/delete
 implementation. The custom new/delete library implements these operators by
-using the `linked_pool/GlobalLinkedPool` class to (de)allocate small objects and
+using the `linked_pool/NSGlobalLinkedPool` class to (de)allocate small objects and
 `malloc` to (de)allocate large objects.
 
-Usage (make sure `libcustomnew.so` is present in your build directory):
+Usage (make sure `libcustomnew.so` is installed):
 * `inject_custom_new my_exec args1 args2` - to run your executable with the
 custom implementation that is also thread safe
-
-Note: Make sure you run the script from **this** folder!
 
 
 ## benchmarks/generate_alloc_file.py
