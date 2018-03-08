@@ -9,7 +9,7 @@ using rpools::PoolHeader;
 template<typename T>
 void test_pool_size() {
     LinkedPool<T> lp;
-    size_t expectedSize = (LinkedPool<TestObject>::PAGE_SIZE -
+    size_t expectedSize = (LinkedPool<TestObject>::getPageSize() -
                            sizeof(PoolHeader)) / sizeof(T);
     REQUIRE(lp.getPoolSize() == expectedSize);
 }
@@ -73,8 +73,8 @@ void test_allocation_2() {
     // and the address of the (P + 1) object, we should
     // get that they are different based on the assumption that
     // only P objects fit in one pool
-    REQUIRE(((size_t)objs[size - 2] & LinkedPool<T>::POOL_MASK)
-            != ((size_t)objs[0] & LinkedPool<T>::POOL_MASK));
+    REQUIRE(((size_t)objs[size - 2] & LinkedPool<T>::getPoolMask())
+            != ((size_t)objs[0] & LinkedPool<T>::getPoolMask()));
     // last 2 elements are from the same pool (i.e. P+1 and P+2)
     REQUIRE(objs[size - 2] + 1 == objs[size - 1]);
     // clean up

@@ -2,6 +2,8 @@
 #define __LINKED_POOL_H__
 
 #include "rpools/allocators/LinkedPool3.hpp"
+#include <iostream>
+
 
 namespace rpools {
 
@@ -16,9 +18,9 @@ using Pool = void*;
 template<typename T>
 class LinkedPool {
 public:
-    static const size_t PAGE_SIZE;
+    static long int getPageSize();
     // mask which is used to get the PoolHeader in constant time
-    static const size_t POOL_MASK;
+    static size_t getPoolMask();
 
     /**
        Creates a LinkedPool allocator that will allocate objects of type T
@@ -57,17 +59,23 @@ private:
 };
 
 template<typename T>
-const size_t LinkedPool<T>::PAGE_SIZE = sysconf(_SC_PAGESIZE);
+long int LinkedPool<T>::getPageSize() {
+    static long int pageSize = sysconf(_SC_PAGESIZE);
+    return pageSize;
+};
 
 template<typename T>
-const size_t LinkedPool<T>::POOL_MASK = -1 >> (size_t) std::log2(LinkedPool::PAGE_SIZE)
-                                        << (size_t) std::log2(LinkedPool::PAGE_SIZE);
-
+size_t LinkedPool<T>::getPoolMask() {
+    static size_t mask = ~0 >> (size_t) std::log2(LinkedPool::getPageSize())
+			    << (size_t) std::log2(LinkedPool::getPageSize());
+    return mask;
+};
+  
 template<typename T>
 LinkedPool<T>::LinkedPool()
     : m_freePools(),
       m_poolLock(),
-      m_poolSize((PAGE_SIZE - sizeof(PoolHeader)) / sizeof(T)) {
+      m_poolSize((getPageSize() - sizeof(PoolHeader)) / sizeof(T)) {
     avl_init(&m_freePools, nullptr);
 }
 
@@ -79,7 +87,7 @@ void* LinkedPool<T>::allocate() {
         return nextFree(freePool);
     } else {
         // create a new pool because there are no free pool slots left
-        Pool pool = aligned_alloc(PAGE_SIZE, PAGE_SIZE);
+        Pool pool = aligned_alloc(getPageSize(), getPageSize());
         constructPoolHeader(pool);
         pool_insert(&m_freePools, pool);
         return nextFree(pool);
@@ -90,7 +98,7 @@ template<typename T>
 void LinkedPool<T>::deallocate(void* t_ptr) {
     // get the pool of ptr
     auto pool = reinterpret_cast<PoolHeader*>(
-        reinterpret_cast<size_t>(t_ptr) & POOL_MASK
+	reinterpret_cast<size_t>(t_ptr) & getPoolMask()
     );
     m_poolLock.lock();
     if (pool->occupiedSlots == 1) {

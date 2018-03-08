@@ -42,12 +42,12 @@ template<typename T>
 class LinkedPool3 {
 public:
     /** The page size of the system. */
-    static const size_t PAGE_SIZE;
+    static long int getPageSize();
     /** Mask which is used to get the `PoolHeader` in constant time.
      *  Because `PoolHeader`s are page aligned, masking a pointer that is
      *  allocated in a pool will give the address of the pool's `PoolHeader`.
      */
-    static const size_t POOL_MASK;
+    static size_t getPoolMask();
 
     /**
        Creates a `LinkedPool` allocator that will allocate objects of type T
@@ -101,12 +101,18 @@ private:
 };
 
 template<typename T>
-const size_t LinkedPool3<T>::PAGE_SIZE = sysconf(_SC_PAGESIZE);
+long int LinkedPool3<T>::getPageSize() {
+    static long int pageSize = sysconf(_SC_PAGESIZE);
+    return pageSize;
+};
 
 template<typename T>
-const size_t LinkedPool3<T>::POOL_MASK = ~0 >> (size_t) std::log2(LinkedPool3::PAGE_SIZE)
-                                         << (size_t) std::log2(LinkedPool3::PAGE_SIZE);
-
+size_t LinkedPool3<T>::getPoolMask() {
+    static size_t mask = ~0 >> (size_t) std::log2(LinkedPool3::getPageSize())
+			    << (size_t) std::log2(LinkedPool3::getPageSize());
+    return mask;
+};
+  
 template<typename T>
 LinkedPool3<T>::LinkedPool3()
     : m_freePools(),
@@ -122,7 +128,7 @@ LinkedPool3<T>::LinkedPool3()
     if (diff != 0) {
         m_slotSize += alignof(T) - diff;
     }
-    m_poolSize = (PAGE_SIZE - sizeof(PoolHeader)) / m_slotSize;
+    m_poolSize = (getPageSize() - sizeof(PoolHeader)) / m_slotSize;
 }
 
 template<typename T>
@@ -140,7 +146,7 @@ void* LinkedPool3<T>::allocate() {
         } else {
             // allocate a new page of memory because there are no free pool
             // slots left
-            Pool pool = aligned_alloc(PAGE_SIZE, PAGE_SIZE);
+            Pool pool = aligned_alloc(getPageSize(), getPageSize());
             constructPoolHeader(pool);
             pool_insert(&m_freePools, pool);
             m_freePool = pool;
@@ -153,7 +159,7 @@ template<typename T>
 void LinkedPool3<T>::deallocate(void* t_ptr) {
     // get the pool of t_ptr
     auto pool = reinterpret_cast<PoolHeader*>(
-        reinterpret_cast<size_t>(t_ptr) & POOL_MASK
+        reinterpret_cast<size_t>(t_ptr) & getPoolMask()
     );
     m_poolLock.lock();
     // the last slot was deallocated => free the page
