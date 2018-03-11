@@ -2,6 +2,7 @@
 #define __NS_GLOBAL_LINKED_POOL_H__
 
 #include "rpools/allocators/PoolHeaderG.hpp"
+#include "rpools/tools/pool_utils.hpp"
 
 extern "C" {
 #include "rpools/avltree/avl_utils.h"
@@ -17,9 +18,6 @@ using Pool = void*;
  */
 class NSGlobalLinkedPool {
 public:
-    static const size_t PAGE_SIZE;
-    static const size_t POOL_MASK;
-
     NSGlobalLinkedPool(size_t t_sizeOfObjects=sizeof(Node),
                        size_t alignment=alignof(max_align_t));
 

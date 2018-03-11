@@ -1,13 +1,12 @@
 #ifndef __LINKED_POOL_3_H__
 #define __LINKED_POOL_3_H__
 
-#include <unistd.h>
-#include <cmath>
 #include <cstdlib>
 #include <new>
 
 #include "rpools/allocators/Node.hpp"
 #include "rpools/tools/LMLock.hpp"
+#include "rpools/tools/pool_utils.hpp"
 
 extern "C" {
 #include "rpools/avltree/avl_utils.h"
@@ -41,17 +40,10 @@ struct PoolHeader {
 template<typename T>
 class LinkedPool3 {
 public:
-    /** The page size of the system. */
-    static const size_t PAGE_SIZE;
-    /** Mask which is used to get the `PoolHeader` in constant time.
-     *  Because `PoolHeader`s are page aligned, masking a pointer that is
-     *  allocated in a pool will give the address of the pool's `PoolHeader`.
-     */
-    static const size_t POOL_MASK;
 
     /**
-       Creates a `LinkedPool` allocator that will allocate objects of type T
-       in pools and return pointers to them.
+     *  Creates a `LinkedPool` allocator that will allocate objects of type T
+     *  in pools and return pointers to them.
      */
     LinkedPool3();
 
@@ -89,7 +81,8 @@ private:
     size_t m_poolSize = 0;
     Pool m_freePool = nullptr;
 
-    /** Creates a `PoolHeader` at **t_ptr**
+    /** 
+     *  Creates a `PoolHeader` at **t_ptr**
      *  @param t_ptr the address where the `PoolHeader` is created
      */
     void constructPoolHeader(Pool t_ptr);
@@ -99,30 +92,23 @@ private:
      */
     void* nextFree(Pool t_ptr);
 };
-
-template<typename T>
-const size_t LinkedPool3<T>::PAGE_SIZE = sysconf(_SC_PAGESIZE);
-
-template<typename T>
-const size_t LinkedPool3<T>::POOL_MASK = ~0 >> (size_t) std::log2(LinkedPool3::PAGE_SIZE)
-                                         << (size_t) std::log2(LinkedPool3::PAGE_SIZE);
-
+  
 template<typename T>
 LinkedPool3<T>::LinkedPool3()
     : m_freePools(),
       m_poolLock(),
       m_slotSize(sizeof(T) < sizeof(Node) ? sizeof(Node) : sizeof(T)) {
     // make sure the first slot starts at a proper alignment
-    size_t diff = sizeof(PoolHeader) % alignof(T);
+    size_t diff = mod(sizeof(PoolHeader), alignof(T));
     if (diff != 0) {
         m_headerPadding += alignof(T) - diff;
     }
     // make sure that slots are properly aligned
-    diff = m_slotSize % alignof(T);
+    diff = mod(m_slotSize, alignof(T));
     if (diff != 0) {
         m_slotSize += alignof(T) - diff;
     }
-    m_poolSize = (PAGE_SIZE - sizeof(PoolHeader)) / m_slotSize;
+    m_poolSize = (getPageSize() - sizeof(PoolHeader)) / m_slotSize;
 }
 
 template<typename T>
@@ -140,7 +126,7 @@ void* LinkedPool3<T>::allocate() {
         } else {
             // allocate a new page of memory because there are no free pool
             // slots left
-            Pool pool = aligned_alloc(PAGE_SIZE, PAGE_SIZE);
+            Pool pool = aligned_alloc(getPageSize(), getPageSize());
             constructPoolHeader(pool);
             pool_insert(&m_freePools, pool);
             m_freePool = pool;
@@ -153,7 +139,7 @@ template<typename T>
 void LinkedPool3<T>::deallocate(void* t_ptr) {
     // get the pool of t_ptr
     auto pool = reinterpret_cast<PoolHeader*>(
-        reinterpret_cast<size_t>(t_ptr) & POOL_MASK
+        reinterpret_cast<size_t>(t_ptr) & getPoolMask()
     );
     m_poolLock.lock();
     // the last slot was deallocated => free the page

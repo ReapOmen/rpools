@@ -18,8 +18,7 @@ void test_pool_size() {
     if (diff != 0) {
         size += alignof(T) - diff;
     }
-    size_t expectedSize = (GlobalLinkedPool::PAGE_SIZE -
-                           sizeof(PoolHeaderG)) / size;
+    size_t expectedSize = (getPageSize() - sizeof(PoolHeaderG)) / size;
     REQUIRE(glp.getPoolSize() == expectedSize);
 }
 
@@ -90,8 +89,8 @@ void test_allocation_2() {
     // and the address of the (P + 1) object, we should
     // get that they are different based on the assumption that
     // only P objects fit in one pool
-    REQUIRE(((size_t)objs[size - 2] & GlobalLinkedPool::POOL_MASK)
-            != ((size_t)objs[0] & GlobalLinkedPool::POOL_MASK));
+    REQUIRE(((size_t)objs[size - 2] & getPoolMask())
+            != ((size_t)objs[0] & getPoolMask()));
     // clean up
     for (auto obj : objs) {
         lp.deallocate(obj);
