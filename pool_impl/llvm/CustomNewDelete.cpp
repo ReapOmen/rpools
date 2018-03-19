@@ -45,6 +45,25 @@ struct CustomNewDelete : public BasicBlockPass {
   /** A mapping from operator news to their `custom_new` correspondent. */
   static const map<StringRef, Function**> OP_TO_CUSTOM;
 
+    static size_t getAlignment(const DataLayout& dataLayout, Type* type) {
+    if (type->isStructTy()) {
+      auto sType = dyn_cast<StructType>(type);
+      size_t maxAlignment = 1;
+      for (auto subType : sType->elements()) {
+	size_t alignment = getAlignment(dataLayout, subType);
+	if (alignment == alignof(std::max_align_t)) {
+	  return alignment;
+	}
+	maxAlignment = std::max(maxAlignment, alignment);
+      }
+      return maxAlignment;
+    } else if (type->isArrayTy() || type->isVectorTy()) {
+      return getAlignment(dataLayout, dyn_cast<SequentialType>(type)->getElementType());
+    } else {
+      return dataLayout.getABITypeAlignment(type);
+    }
+  }
+
   static size_t getAlignmentFromInst(llvm::Instruction* inst,
                                      const DataLayout& dataLayout) {
     size_t alignment = alignof(max_align_t);
@@ -54,7 +73,7 @@ struct CustomNewDelete : public BasicBlockPass {
       auto& bci = cast<BitCastInst>(*inst);
       auto& pt = cast<PointerType>(*bci.getDestTy());
       Type* type = pt.getPointerElementType();
-      alignment = dataLayout.getPrefTypeAlignment(type);
+      alignment = getAlignment(dataLayout, type);
     }
     return alignment;
   }
@@ -87,7 +106,6 @@ struct CustomNewDelete : public BasicBlockPass {
     );
     mod.getOrInsertFunction(CUSTOM_DELETE_NAME, customDeleteType);
     CUSTOM_DELETE_FUNC = mod.getFunction(CUSTOM_DELETE_NAME);
-
     return true;
   }
 
@@ -108,14 +126,15 @@ struct CustomNewDelete : public BasicBlockPass {
             // type being allocated
             size_t alignment = getAlignmentFromInst(inst.getNextNode(),
                                                     dataLayout);
+            CallInst* customNewCall =
+                builder.CreateCall(*OP_TO_CUSTOM.at(name),
+                                   { ci.getOperand(0),
+                                     builder.getInt64(alignment) });
+            customNewCall->setAttributes(ci.getAttributes());
             // replace the call to operator new with custom_new
             // but make sure the first argument of operator new
             // is copied into custom new as well!
-            ci.replaceAllUsesWith(
-              builder.CreateCall(*OP_TO_CUSTOM.at(name),
-                                 { ci.getOperand(0),
-                                   builder.getInt64(alignment) })
-            );
+            ci.replaceAllUsesWith(customNewCall);
             // save call instruction to remove it later
             insts.push_back(&ci);
           } else if (isDelete(name)) {
@@ -136,18 +155,16 @@ struct CustomNewDelete : public BasicBlockPass {
               // InvokeInsts seem to hold the BitCastInst which contains the
               // type being allocated in the NormalDest BasicBlock
               size_t alignment =
-                getAlignmentFromInst(ii.getNormalDest()->getFirstNonPHI(),
+                getAlignmentFromInst(&ii.getNormalDest()->front(),
                                      dataLayout);
               InvokeInst* customNewInvoke =
                 builder.CreateInvoke(*OP_TO_CUSTOM.at(name),
-                                     ii.getNormalDest(),
-                                     ii.getUnwindDest(),
-                                     { ii.getOperand(0),
-                                       builder.getInt64(alignment) }
-                );
-              AttributeList attrs;
-              attrs.addAttribute(ii.getContext(), 0, Attribute::NoAlias);
-              customNewInvoke->setAttributes(attrs);
+				     ii.getNormalDest(),
+				     ii.getUnwindDest(),
+				     { ii.getOperand(0),
+				       builder.getInt64(alignment) }
+	      );
+              customNewInvoke->setAttributes(ii.getAttributes());
               ii.replaceAllUsesWith(customNewInvoke);
               insts.push_back(&ii);
             } else if (isDelete(name)) {
