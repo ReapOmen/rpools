@@ -14,31 +14,41 @@ namespace {
     const size_t __mod = sizeof(void*) - 1;
     const size_t __logOfVoid = std::log2(sizeof(void*));
 
-    GlobalPools __pools(__threshold >> __logOfVoid);
+    GlobalPools& getPools() {
+        static GlobalPools pools(__threshold >> __logOfVoid);
+        return pools;
+    }
 
-    std::unique_ptr<avl_tree, FreeDeleter<avl_tree>>  __mallocedPages(
-        avl_init((avl_tree*)std::malloc(sizeof(avl_tree)), nullptr)
-    );
+    avl_tree* getMallocedPages() {
+        static std::unique_ptr<avl_tree, FreeDeleter<avl_tree>>  __mallocedPages(
+            avl_init((avl_tree*)std::malloc(sizeof(avl_tree)), nullptr)
+        );
+        return __mallocedPages.get();
+    }
 
-    LMLock __lock;
+    LMLock& getLock() {
+        static LMLock lock;
+        return lock;
+    }
 }
 
 void* custom_new_no_throw(size_t t_size, size_t t_alignment) {
+    LMLock& lock = getLock();
     // use malloc for large sizes or if we are dealing with
     // alignments that are not 2, 4, 8, 16
     if (mod(alignof(max_align_t), t_alignment) != 0 || t_size > __threshold) {
         void* addr = aligned_alloc(t_alignment, t_size);
         auto maskedAddr = reinterpret_cast<size_t>(addr) & getPoolMask();
         auto page = reinterpret_cast<void*>(maskedAddr);
-        __lock.lock();
-        auto res = _get_entry(page_get(__mallocedPages.get(), page),
+        lock.lock();
+        auto res = _get_entry(page_get(getMallocedPages(), page),
                               PageNode, avl);
         if (res) {
             ++res->num;
         } else {
-            page_insert(__mallocedPages.get(), page);
+            page_insert(getMallocedPages(), page);
         }
-        __lock.unlock();
+        lock.unlock();
         return addr;
     } else {
         size_t remainder = t_size & __mod; // t_size % sizeof(void*)
@@ -52,9 +62,9 @@ void* custom_new_no_throw(size_t t_size, size_t t_alignment) {
         // 40 % 16 != 0 -> place the request in a pool that holds
         // objects of size 48 (also note 48 % 16 == 0 -> has an alignment of 16)
         t_size += (mod(t_size, t_alignment)) == 0 ? 0 : sizeof(void*);
-        __lock.lock();
-        void* addr = __pools.getPool(t_size).allocate();
-        __lock.unlock();
+        lock.lock();
+        void* addr = getPools().getPool(t_size).allocate();
+        lock.unlock();
         return addr;
     }
 }
@@ -72,25 +82,26 @@ void custom_delete(void* t_ptr) noexcept {
     // or within a pool
     auto addr = reinterpret_cast<size_t>(t_ptr);
     auto page = reinterpret_cast<void*>(addr & getPoolMask());
-    __lock.lock();
-    avl_node* kv = page_get(__mallocedPages.get(), page);
+    LMLock& lock = getLock();
+    lock.lock();
+    avl_node* kv = page_get(getMallocedPages(), page);
     auto res = _get_entry(kv, PageNode, avl);
     if (res) {
         if (res->num > 1) {
             --res->num;
         } else {
-            page_remove(__mallocedPages.get(), kv);
+            page_remove(getMallocedPages(), kv);
         }
-        __lock.unlock();
+        lock.unlock();
         std::free(t_ptr);
         return;
     } else {
         const PoolHeaderG& ph = NSGlobalLinkedPool::getPoolHeader(t_ptr);
         // convert the size to an index of the allocators vector
         // by dividing it to sizeof(void*)
-        __pools.getPool(ph.sizeOfSlot).deallocate(t_ptr);
+        getPools().getPool(ph.sizeOfSlot).deallocate(t_ptr);
     }
-    __lock.unlock();
+    lock.unlock();
 }
 
 // list of all new functions:
