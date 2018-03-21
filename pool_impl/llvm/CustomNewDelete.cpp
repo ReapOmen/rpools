@@ -4,10 +4,7 @@
 #include <llvm/Transforms/IPO/PassManagerBuilder.h>
 #include <llvm/IR/LegacyPassManager.h>
 #include <llvm/IR/Instructions.h>
-#include <llvm/IR/Function.h>
 #include <llvm/IR/Module.h>
-#include <llvm/IR/DataLayout.h>
-#include <llvm/IR/DerivedTypes.h>
 #include <llvm/IR/IRBuilder.h>
 #include <algorithm>
 #include <vector>
@@ -44,25 +41,6 @@ struct CustomNewDelete : public BasicBlockPass {
   static Function* CUSTOM_DELETE_FUNC;
   /** A mapping from operator news to their `custom_new` correspondent. */
   static const map<StringRef, Function**> OP_TO_CUSTOM;
-
-    static size_t getAlignment(const DataLayout& dataLayout, Type* type) {
-    if (type->isStructTy()) {
-      auto sType = dyn_cast<StructType>(type);
-      size_t maxAlignment = 1;
-      for (auto subType : sType->elements()) {
-	size_t alignment = getAlignment(dataLayout, subType);
-	if (alignment == alignof(std::max_align_t)) {
-	  return alignment;
-	}
-	maxAlignment = std::max(maxAlignment, alignment);
-      }
-      return maxAlignment;
-    } else if (type->isArrayTy() || type->isVectorTy()) {
-      return getAlignment(dataLayout, dyn_cast<SequentialType>(type)->getElementType());
-    } else {
-      return dataLayout.getABITypeAlignment(type);
-    }
-  }
 
   static size_t getAlignmentFromInst(llvm::Instruction* inst,
                                      const DataLayout& dataLayout) {
