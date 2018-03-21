@@ -18,6 +18,9 @@ class LMLock {
 public:
     LMLock();
     LMLock(const LMLock& other) = delete;
+    LMLock& operator =(const LMLock& other) = delete;
+    LMLock(LMLock&& other);
+    LMLock& operator =(LMLock&& other);
     void lock();
     void unlock();
     virtual ~LMLock() = default;
