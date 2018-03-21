@@ -1,5 +1,6 @@
 #include <cstdlib>
 #include <new>
+#include <cstring>
 
 #include "rpools/allocators/GlobalLinkedPool.hpp"
 
@@ -37,7 +38,9 @@ void* GlobalLinkedPool::allocate() {
             return nextFree(pool);
         } else {
             // create a new pool because there are no free pool slots left
-            Pool pool = aligned_alloc(getPageSize(), getPageSize());
+            size_t pageSize = getPageSize();
+            Pool pool = aligned_alloc(pageSize, pageSize);
+            std::memset(pool, 0, pageSize);
             constructPoolHeader(reinterpret_cast<char*>(pool));
             pool_insert(&m_freePools, pool);
             m_freePool = pool;

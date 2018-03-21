@@ -1,10 +1,9 @@
 #include "rpools/custom_new/custom_new_delete.hpp"
 
 #include <cmath>
+#include <cstring>
 
-#include "rpools/tools/FreeDeleter.hpp"
 #include "GlobalPools.hpp"
-#include "rpools/tools/LMLock.hpp"
 
 namespace {
     using namespace rpools;
@@ -14,42 +13,29 @@ namespace {
     const size_t __mod = sizeof(void*) - 1;
     const size_t __logOfVoid = std::log2(sizeof(void*));
 
+    // Used to mark the first 16 bytes of a malloc-d region
+    struct MallocHeader {
+        char validity[16] = "              \0";
+    };
+
     GlobalPools& getPools() {
         static GlobalPools pools(__threshold >> __logOfVoid);
         return pools;
     }
-
-    avl_tree* getMallocedPages() {
-        static std::unique_ptr<avl_tree, FreeDeleter<avl_tree>>  __mallocedPages(
-            avl_init((avl_tree*)std::malloc(sizeof(avl_tree)), nullptr)
-        );
-        return __mallocedPages.get();
-    }
-
-    LMLock& getLock() {
-        static LMLock lock;
-        return lock;
-    }
 }
 
 void* custom_new_no_throw(size_t t_size, size_t t_alignment) {
-    LMLock& lock = getLock();
     // use malloc for large sizes or if we are dealing with
     // alignments that are not 2, 4, 8, 16
     if (mod(alignof(max_align_t), t_alignment) != 0 || t_size > __threshold) {
-        void* addr = aligned_alloc(t_alignment, t_size);
-        auto maskedAddr = reinterpret_cast<size_t>(addr) & getPoolMask();
-        auto page = reinterpret_cast<void*>(maskedAddr);
-        lock.lock();
-        auto res = _get_entry(page_get(getMallocedPages(), page),
-                              PageNode, avl);
-        if (res) {
-            ++res->num;
-        } else {
-            page_insert(getMallocedPages(), page);
-        }
-        lock.unlock();
-        return addr;
+        // add sizeof(MallocHeader) extra space to denote the fact that the
+        // allocation is malloc-d
+        auto addr = static_cast<char*>(std::malloc(t_size +
+                                                   sizeof(MallocHeader)));
+        auto header = new(addr) MallocHeader();
+        std::strcpy(header->validity, "IsThIsMaLlOcD!\0");
+        // make sure we do not return the extra memory
+        return addr + sizeof(MallocHeader);
     } else {
         size_t remainder = t_size & __mod; // t_size % sizeof(void*)
         // round up to the next multiple of sizeof(void*)
@@ -62,9 +48,7 @@ void* custom_new_no_throw(size_t t_size, size_t t_alignment) {
         // 40 % 16 != 0 -> place the request in a pool that holds
         // objects of size 48 (also note 48 % 16 == 0 -> has an alignment of 16)
         t_size += (mod(t_size, t_alignment)) == 0 ? 0 : sizeof(void*);
-        lock.lock();
         void* addr = getPools().getPool(t_size).allocate();
-        lock.unlock();
         return addr;
     }
 }
@@ -80,28 +64,20 @@ void* custom_new(size_t t_size, size_t t_alignment) {
 void custom_delete(void* t_ptr) noexcept {
     // find out if the pointer was allocated with malloc
     // or within a pool
-    auto addr = reinterpret_cast<size_t>(t_ptr);
-    auto page = reinterpret_cast<void*>(addr & getPoolMask());
-    LMLock& lock = getLock();
-    lock.lock();
-    avl_node* kv = page_get(getMallocedPages(), page);
-    auto res = _get_entry(kv, PageNode, avl);
-    if (res) {
-        if (res->num > 1) {
-            --res->num;
-        } else {
-            page_remove(getMallocedPages(), kv);
-        }
-        lock.unlock();
-        std::free(t_ptr);
-        return;
+    auto cAddr = reinterpret_cast<char*>(t_ptr);
+    // legal because malloc-d addresses have 16 extra bytes
+    // and pool addressed will always be at least 48 bytes after
+    // the start of some page boundary
+    cAddr -= sizeof(MallocHeader);
+    auto header = reinterpret_cast<MallocHeader*>(cAddr);
+    if (std::strcmp(header->validity, "IsThIsMaLlOcD!\0") == 0) {
+        free(cAddr);
     } else {
-        const PoolHeaderG& ph = NSGlobalLinkedPool::getPoolHeader(t_ptr);
+        const PoolHeaderG& ph = GlobalLinkedPool::getPoolHeader(t_ptr);
         // convert the size to an index of the allocators vector
         // by dividing it to sizeof(void*)
         getPools().getPool(ph.sizeOfSlot).deallocate(t_ptr);
     }
-    lock.unlock();
 }
 
 // list of all new functions:

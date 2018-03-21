@@ -1,4 +1,5 @@
 #include "rpools/tools/LMLock.hpp"
+#include <utility>
 
 using namespace rpools;
 
@@ -7,7 +8,14 @@ LMLock::LMLock()
 #ifdef __x86_64
              LIGHT_LOCK_INIT
 #endif
-      ) {
+      ) { }
+
+LMLock::LMLock(LMLock&& other)
+    : m_lock(std::move(other.m_lock)) { }
+
+LMLock& LMLock::operator =(LMLock&& other) {
+    m_lock = std::move(other.m_lock);
+    return *this;
 }
 
 void LMLock::lock() {

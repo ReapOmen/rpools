@@ -4,7 +4,7 @@
 #include <cmath>
 
 using std::vector;
-using rpools::NSGlobalLinkedPool;
+using rpools::GlobalLinkedPool;
 
 const size_t __void = sizeof(void*);
 const size_t __logOfVoid = std::log2(__void);
@@ -19,7 +19,7 @@ GlobalPools::GlobalPools(size_t t_numOfPools)
     }
 }
 
-NSGlobalLinkedPool& GlobalPools::getPool(size_t t_size) {
+GlobalLinkedPool& GlobalPools::getPool(size_t t_size) {
     if (t_size == 0) {
         return m_pools[0];
     }
