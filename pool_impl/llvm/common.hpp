@@ -4,6 +4,8 @@
 #include <vector>
 #include <string>
 #include <llvm/ADT/StringRef.h>
+#include <llvm/IR/DataLayout.h>
+#include <llvm/IR/DerivedTypes.h>
 
 namespace custom_pass {
 
@@ -41,6 +43,13 @@ bool isDelete(const std::string& t_name);
  *  @return the demangled name of a LLVM function.
  */
 std::string getDemangledName(const std::string& t_name);
+
+/**
+ *  @param dataLayout the DataLayout of the module
+ *  @param type the type whose alignment to be calculated
+ *  @return the true alignment of the given type.
+ */
+size_t getAlignment(const llvm::DataLayout& dataLayout, llvm::Type* type);
 
 /**
  * Erases the whitespace from the end of the string.

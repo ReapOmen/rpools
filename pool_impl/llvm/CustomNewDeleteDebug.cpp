@@ -6,8 +6,6 @@
 #include <llvm/IR/Instructions.h>
 #include <llvm/IR/Function.h>
 #include <llvm/IR/Module.h>
-#include <llvm/IR/DataLayout.h>
-#include <llvm/IR/DerivedTypes.h>
 #include <llvm/IR/IRBuilder.h>
 #include <algorithm>
 #include <vector>
@@ -165,7 +163,7 @@ struct CustomNewDeleteDebug : public BasicBlockPass {
       auto& bci = cast<BitCastInst>(*inst);
       auto& pt = cast<PointerType>(*bci.getDestTy());
       Type* type = pt.getPointerElementType();
-      tm.alignment = dataLayout.getPrefTypeAlignment(type);
+      tm.alignment = getAlignment(dataLayout, type);
       tm.size = dataLayout.getTypeAllocSize(type);
       Function* func = inst->getFunction();
       string typeName = getNameFromFunc(func);

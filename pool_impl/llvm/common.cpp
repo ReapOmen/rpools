@@ -4,6 +4,7 @@
 #include "common.hpp"
 
 using namespace custom_pass;
+using namespace llvm;
 using std::string;
 
 bool custom_pass::isNew(const string& t_name) {
@@ -25,6 +26,26 @@ std::string custom_pass::getDemangledName(const string& t_name) {
     t_name.c_str(), nullptr, nullptr, &status
   );
   return demangledName ? demangledName : t_name;
+}
+
+size_t custom_pass::getAlignment(const DataLayout& dataLayout, Type* type) {
+  if (type->isStructTy()) {
+    auto sType = dyn_cast<StructType>(type);
+    size_t maxAlignment = 1;
+    for (auto subType : sType->elements()) {
+      size_t alignment = custom_pass::getAlignment(dataLayout, subType);
+      if (alignment == alignof(std::max_align_t)) {
+        return alignment;
+      }
+      maxAlignment = std::max(maxAlignment, alignment);
+    }
+    return maxAlignment;
+  } else if (type->isArrayTy() || type->isVectorTy()) {
+    auto subType = dyn_cast<SequentialType>(type)->getElementType();
+    return custom_pass::getAlignment(dataLayout, subType);
+  } else {
+    return dataLayout.getABITypeAlignment(type);
+  }
 }
 
 // adapted from
