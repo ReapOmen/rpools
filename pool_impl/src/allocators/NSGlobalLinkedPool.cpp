@@ -2,7 +2,6 @@
 #include <new>
 #include <cstring>
 
-#include <iostream>
 #include "rpools/allocators/NSGlobalLinkedPool.hpp"
 
 using namespace rpools;
