@@ -8,7 +8,8 @@
  *  Allocates `t_size` bytes and aligns it according to `t_alignment`.
  *  @note This function will return a nullptr when allocation fails.
  *  @param t_size the size of the allocation
- *  @param t_alignment the alignment of the allocation
+ *  @param t_alignment the alignment of the allocation which cannot
+ *                     be greater than 16
  *  @return a pointer aligned to `t_alignment` of size `t_size`.
  */
 void* custom_new_no_throw(size_t t_size,
@@ -18,7 +19,8 @@ void* custom_new_no_throw(size_t t_size,
  *  Allocates `t_size` bytes and aligns it according to `t_alignment`.
  *  @note This function throws bad_alloc when allocation fails.
  *  @param t_size the size of the allocation
- *  @param t_alignment the alignment of the allocation
+ *  @param t_alignment the alignment of the allocation which cannot
+ *                     be greater than 16
  *  @return a pointer aligned to `t_alignment` of size `t_size`.
  */
 void* custom_new(size_t t_size,

@@ -25,9 +25,8 @@ namespace {
 }
 
 void* custom_new_no_throw(size_t t_size, size_t t_alignment) {
-    // use malloc for large sizes or if we are dealing with
-    // alignments that are not 2, 4, 8, 16
-    if (mod(alignof(max_align_t), t_alignment) != 0 || t_size > __threshold) {
+    // use malloc for large sizes
+    if (t_size > __threshold) {
         // add sizeof(MallocHeader) extra space to denote the fact that the
         // allocation is malloc-d
         auto addr = static_cast<char*>(std::malloc(t_size +
