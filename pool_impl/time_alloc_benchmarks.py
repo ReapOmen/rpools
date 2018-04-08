@@ -19,7 +19,7 @@ def generate_table():
     '''
     folder = './build/benchmarks/'
     # the format string of the "time" command
-    time_format = '%e ms\n%M KBs'
+    time_format = '%e s\n%M KBs'
     table = []
     for file in sorted(os.listdir(folder)):
         if file.startswith('alloc_benchmark'):
