@@ -1,5 +1,5 @@
-#ifndef __LINKED_POOL_3_H__
-#define __LINKED_POOL_3_H__
+#ifndef __LINKED_POOL_H__
+#define __LINKED_POOL_H__
 
 #include <cstdlib>
 #include <new>

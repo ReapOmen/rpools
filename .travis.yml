@@ -17,7 +17,7 @@ compiler:
 
 install:
   - if [ "$CXX" = "g++" ]; then export CXX="g++-5" CC="gcc-5"; fi
-  - cd pool_impl && mkdir build && cd build && cmake .. && make
+  - mkdir build && cd build && cmake .. && make
 
 script:
   - make test

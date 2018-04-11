@@ -2,7 +2,7 @@
 add_library(testrunner STATIC test_runner.cpp)
 target_link_libraries(testrunner PUBLIC Catch)
 
-# test LinkedPool1
+# test LinkedPool
 add_executable(test_linked_pool test_linked_pool.cpp)
 target_link_libraries(test_linked_pool PRIVATE linkedpools testrunner)
 add_test(NAME TestLinkedPool COMMAND test_linked_pool)
