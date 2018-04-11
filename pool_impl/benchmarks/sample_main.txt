@@ -1,8 +1,8 @@
 #include <iostream>
 
 #include "rpools/tools/proc_utils.hpp"
-#include "rpools/allocators/LinkedPool3.hpp"
-using rpools::LinkedPool3;
+#include "rpools/allocators/LinkedPool.hpp"
+using rpools::LinkedPool;
 using std::cout;
 using std::endl;
 

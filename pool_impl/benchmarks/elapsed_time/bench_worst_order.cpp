@@ -20,10 +20,8 @@
 #endif
 #include "rpools/allocators/MemoryPool.h"
 #include "rpools/allocators/LinkedPool.hpp"
-#include "rpools/allocators/LinkedPool3.hpp"
 
 using rpools::LinkedPool;
-using rpools::LinkedPool3;
 using std::vector;
 
 /**
@@ -111,9 +109,6 @@ int main(int argc, char* argv[]) {
     }
     {
         benchPool<LinkedPool>(BOUND, j, POOL_SIZE, MULT, "LinkedPool");
-    }
-    {
-        benchPool<LinkedPool3>(BOUND, j, POOL_SIZE, MULT, "LinkedPool3");
     }
     {
         benchPool<MemoryPool>(BOUND, j, POOL_SIZE, MULT, "MemoryPool");

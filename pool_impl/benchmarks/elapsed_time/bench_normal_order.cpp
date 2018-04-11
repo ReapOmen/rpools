@@ -23,10 +23,8 @@
 #endif
 #include "rpools/allocators/MemoryPool.h"
 #include "rpools/allocators/LinkedPool.hpp"
-#include "rpools/allocators/LinkedPool3.hpp"
 
 using rpools::LinkedPool;
-using rpools::LinkedPool3;
 
 /**
  *  Allocate and deallocate a number of `TestObject`s by using a pool allocator.
@@ -93,9 +91,6 @@ int main(int argc, char *argv[]) {
     }
     {
         benchPool<LinkedPool>(BOUND, j, "LinkedPool");
-    }
-    {
-        benchPool<LinkedPool3>(BOUND, j, "LinkedPool3");
     }
     {
         benchPool<MemoryPool>(BOUND, j, "MemoryPool");
