@@ -1,4 +1,4 @@
     static void* operator new(size_t s) {{
-        static LinkedPool3<_{name}> lp;
+        static LinkedPool<_{name}> lp;
         return lp.allocate();
     }}

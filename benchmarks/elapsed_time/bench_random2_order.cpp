@@ -32,10 +32,8 @@
 #endif
 #include "rpools/allocators/MemoryPool.h"
 #include "rpools/allocators/LinkedPool.hpp"
-#include "rpools/allocators/LinkedPool3.hpp"
 
 using rpools::LinkedPool;
-using rpools::LinkedPool3;
 using std::pair;
 using std::make_pair;
 using std::vector;
@@ -253,9 +251,6 @@ int main(int argc, char *argv[]) {
     }
     {
         benchPool<LinkedPool>(BOUND, j, order, "LinkedPool");
-    }
-    {
-        benchPool<LinkedPool3>(BOUND, j, order, "LinkedPool3");
     }
     {
         benchPool<MemoryPool>(BOUND, j, order, "MemoryPool");

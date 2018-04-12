@@ -1,5 +1,5 @@
-#ifndef __LINKED_POOL_3_H__
-#define __LINKED_POOL_3_H__
+#ifndef __LINKED_POOL_H__
+#define __LINKED_POOL_H__
 
 #include <cstdlib>
 #include <new>
@@ -38,14 +38,14 @@ struct PoolHeader {
  *  @tparam T the type of object to store in the pool
  */
 template<typename T>
-class LinkedPool3 {
+class LinkedPool {
 public:
 
     /**
      *  Creates a `LinkedPool` allocator that will allocate objects of type T
      *  in pools and return pointers to them.
      */
-    LinkedPool3();
+    LinkedPool();
 
     /**
      *  Allocates space for an object of type T in one of the free slots
@@ -81,7 +81,7 @@ private:
     size_t m_poolSize = 0;
     Pool m_freePool = nullptr;
 
-    /** 
+    /**
      *  Creates a `PoolHeader` at **t_ptr**
      *  @param t_ptr the address where the `PoolHeader` is created
      */
@@ -92,9 +92,9 @@ private:
      */
     void* nextFree(Pool t_ptr);
 };
-  
+
 template<typename T>
-LinkedPool3<T>::LinkedPool3()
+LinkedPool<T>::LinkedPool()
     : m_freePools(),
       m_poolLock(),
       m_slotSize(sizeof(T) < sizeof(Node) ? sizeof(Node) : sizeof(T)) {
@@ -112,7 +112,7 @@ LinkedPool3<T>::LinkedPool3()
 }
 
 template<typename T>
-void* LinkedPool3<T>::allocate() {
+void* LinkedPool<T>::allocate() {
     m_poolLock.lock();
     // use the cached pool to get the next slot
     if (m_freePool) {
@@ -136,7 +136,7 @@ void* LinkedPool3<T>::allocate() {
 }
 
 template<typename T>
-void LinkedPool3<T>::deallocate(void* t_ptr) {
+void LinkedPool<T>::deallocate(void* t_ptr) {
     // get the pool of t_ptr
     auto pool = reinterpret_cast<PoolHeader*>(
         reinterpret_cast<size_t>(t_ptr) & getPoolMask()
@@ -164,7 +164,7 @@ void LinkedPool3<T>::deallocate(void* t_ptr) {
 }
 
 template<typename T>
-void LinkedPool3<T>::constructPoolHeader(Pool t_ptr) {
+void LinkedPool<T>::constructPoolHeader(Pool t_ptr) {
     auto header = new (t_ptr) PoolHeader();
     auto first = reinterpret_cast<char*>(header + 1);
     first += m_headerPadding;
@@ -178,7 +178,7 @@ void LinkedPool3<T>::constructPoolHeader(Pool t_ptr) {
 }
 
 template<typename T>
-void* LinkedPool3<T>::nextFree(Pool t_ptr) {
+void* LinkedPool<T>::nextFree(Pool t_ptr) {
     auto header = reinterpret_cast<PoolHeader*>(t_ptr);
     Node& head = header->head;
     void* toReturn = head.next;
