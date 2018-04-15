@@ -4,7 +4,6 @@
 using rpools::LinkedPool;
 #include "SomeObject.hpp"
 
-// LinkedPool3 is used in the same way
 int main() {
     LinkedPool<SomeObject> lp;
     auto so = static_cast<SomeObject*>(lp.allocate());

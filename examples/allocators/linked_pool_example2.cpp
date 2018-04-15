@@ -26,7 +26,6 @@ private:
 
 LinkedPool<SomeObject> SomeObject::lp;
 
-// LinkedPool3 is used in the same way
 int main() {
     auto so = new SomeObject();
     so->setX(2);
