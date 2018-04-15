@@ -28,7 +28,7 @@ function name, etc.) during runtime by injecting
 `libcustomnewdebug` into the compiled program. If the executable is run, an
 `object_snapshots_<PID>.json` is generated.
 
-`clang++ -Xclang -load -Xclang /path/to/libLLVMCustomNewDebugPass.so -o
+`clang++ -Xclang -load -Xclang /path/to/libLLVMCustomNewPassDebug.so -o
 hello /path/to/hello.cpp -lcustomnewdebug` will compile hello with
 the debug pass.
 
@@ -40,4 +40,3 @@ Make sure `cd debug && npm install` is run before generation.
 To use it in a `CMake` project, check out how its done for `libLLVMCustomNewPass.so`,
 and change `libLLVMCustomNewPass -> libLLVMCustomNewPassDebug` and
 `customnew -> customnewdebug`.
-
