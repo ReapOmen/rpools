@@ -1,3 +1,8 @@
+/**
+ *  @file custom_new_delete_debug.hpp
+ *  A replacement for `operator new/delete`.
+ */
+
 #ifndef __CUSTOM_NEW_DELETE_DEBUG_H__
 #define __CUSTOM_NEW_DELETE_DEBUG_H__
 

@@ -1,3 +1,8 @@
+/**
+ *  @file custom_new_delete.hpp
+ *  A replacement for `operator new/delete`.
+ */
+
 #ifndef __CUSTOM_NEW_DELETE_H__
 #define __CUSTOM_NEW_DELETE_H__
 
